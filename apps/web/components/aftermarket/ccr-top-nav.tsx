@@ -1,15 +1,20 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { ChevronDown } from "lucide-react"
 import { useAftermarketSession } from "@/components/aftermarket/session-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
 function BrandMark() {
   return (
-    <span className="flex h-9 w-10 items-center justify-center rounded-sm border border-neutral-300 text-[13px] font-black tracking-tight text-neutral-800">
-      JL
-    </span>
+    <Image
+      src="/JLR_Primary_logo_BLK.jpg"
+      alt="JLR"
+      width={35}
+      height={30}
+      className="h-7 w-9 object-contain"
+    />
   )
 }
 
@@ -48,18 +53,15 @@ export function CcrTopNav({ active = "home" }: { active?: string }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden max-w-64 truncate text-[13px] font-medium text-neutral-700 lg:block">
+          {/* <span className="hidden max-w-64 truncate text-[13px] font-medium text-neutral-700 lg:block">
             Aftermarket Commercial Change Manage...
-          </span>
+          </span> */}
           <ChevronDown className="size-3.5 text-neutral-500" />
           <span
             className="flex size-6 items-center justify-center rounded-full bg-neutral-200 text-[10px] font-bold text-neutral-700"
             title={userName}
           >
             {initials || "DU"}
-          </span>
-          <span className="text-[13px] font-semibold text-neutral-600 italic">
-            appian
           </span>
         </div>
       </div>

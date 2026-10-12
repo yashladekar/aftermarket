@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { SESSION_COOKIE } from "@/lib/constants"
 
-const PUBLIC_PATHS = ["/login"]
+const PUBLIC_PATHS = ["/login", "/JLR_Primary_logo_BLK.jpg"]
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
