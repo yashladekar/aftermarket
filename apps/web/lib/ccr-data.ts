@@ -59,6 +59,56 @@ export const demoVendorCodes = ["MRDFN"]
 
 export const demoPartNumbers = ["5201140783", "5201140784"]
 
+export const demoPartDetails: Record<
+  string,
+  { newNetPrice: string; startDate: string; justification: string }
+> = {
+  "5201140783": {
+    newNetPrice: "0.9120",
+    startDate: "2026-11-01",
+    justification:
+      "Demo CCR: supplier advised a unit price uplift on fixings from November due to higher alloy surcharges. Two MRDFN parts in scope, MOQ and lead time unchanged, requesting validation so the forecast can be updated.",
+  },
+  "5201140784": {
+    newNetPrice: "0.9780",
+    startDate: "2026-11-01",
+    justification:
+      "Demo CCR: supplier advised a unit price uplift on fixings from November due to higher alloy surcharges. Two MRDFN parts in scope, MOQ and lead time unchanged, requesting validation so the forecast can be updated.",
+  },
+}
+
+export const demoStakeholders = [
+  {
+    contactType: "External",
+    name: "Alex Morgan",
+    email: "alex.morgan@example-supplier.co.uk",
+    vendorCodes: ["MRDFN"],
+  },
+] as const
+
+export const demoCcrDetail = {
+  reference: "CCR-MRDFN-1042",
+  status: "Pending Validation",
+  currency: "EUR",
+  governance: "No",
+  vorQty: "",
+  boQty: "",
+  isATB: "No",
+  isBB: "No",
+  supplyIssue: "No",
+  createdBy: "Demo Buyer",
+  createdOn: "12/10/2026",
+  buyerCode: "DM01",
+  buyerEmail: "demo.buyer@example.co.uk",
+  materialInventoryImpact: "GBP 0.00",
+  materialCostImpact: "GBP -52,212.44",
+  materialLeadTimeImpact: "GBP 0.00",
+  materialStorageImpact: "",
+  totalImpact: "GBP -52,212.44",
+  forecastWarning:
+    "SUBMIT FOR APPROVAL NOT ALLOWED: Forecast Request is Pending. There are few parts which reason codes have not been set",
+}
+
 export const ccrWizardSteps = [
   "Select Vendors",
   "Select Parts",

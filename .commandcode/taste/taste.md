@@ -17,3 +17,4 @@
 - Prefers extracting genuinely shared/common code into workspace `packages/*`, but only when feasible — explicitly asks to skip extraction if there's nothing truly shared ("if possible, if not don't do it"). Favors pragmatism over forced abstraction. Confidence: 0.8
 - Requires replacing any real/confidential data visible in provided screenshots with fictional dummy data in the implementation. Confidence: 0.95
 - When migrating off Appian, prefers rebuilding each screen faithfully as-is in Next.js with proper forms and zod schema validation rather than redesigning. Confidence: 0.85
+- Prefers systematic end-to-end browser audit of every built screen field-by-field to catch and fix gaps (including validation gates, filters, and negative paths) before moving on. Confidence: 0.8

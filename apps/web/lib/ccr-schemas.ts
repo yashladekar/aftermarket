@@ -77,3 +77,172 @@ export const selectPartsDefaults: SelectPartsValues = {
   selectAll: false,
   selectedPartNumbers: [],
 }
+
+const optionalNumeric = (label: string) =>
+  z
+    .string()
+    .regex(/^\d+(\.\d{1,5})?$/, `${label} must be a valid number`)
+    .or(z.literal(""))
+    .default("")
+
+export const partChangeRowSchema = z.object({
+  partNumber: z.string().min(1),
+  newNetPrice: optionalNumeric("New Net Price"),
+  newPer: optionalNumeric("New PER"),
+  newMoq: optionalNumeric("New MOQ"),
+  newOrderMultiple: optionalNumeric("New Current Order Multiple (OM)"),
+  newLeadTime: optionalNumeric("New Lead Time"),
+  buyingType: z.enum(["General", "Blanket", "Spot"]).default("General"),
+  buyingTypeQty: optionalNumeric("Buying Type Qty"),
+  startDate: z.string().min(1, "Start Date is required."),
+})
+
+export const partDetailsSchema = z.object({
+  selectAllStartDate: z.string().default(""),
+  partRows: z
+    .array(partChangeRowSchema)
+    .min(1, "Select at least one part to continue"),
+  justification: z
+    .string()
+    .min(1, "Justification is required")
+    .max(2000, "Justification must be 2000 characters or less"),
+})
+
+export type PartChangeRowValues = z.infer<typeof partChangeRowSchema>
+export type PartDetailsValues = z.infer<typeof partDetailsSchema>
+export type PartDetailsInput = z.input<typeof partDetailsSchema>
+
+export const buyingTypeOptions = ["General", "Blanket", "Spot"] as const
+
+export const supportDocFileTypes = [
+  "Quote",
+  "Cost Breakdown",
+  "Allocation",
+  "Others",
+] as const
+
+export const permittedDocExtensions = [
+  "xls",
+  "xlsx",
+  "jpeg",
+  "jpg",
+  "png",
+  "doc",
+  "docx",
+  "pdf",
+  "msg",
+] as const
+
+export const supportDocumentEntrySchema = z.object({
+  key: z.string().min(1),
+  name: z.string().min(1, "File name is required").max(255),
+  extension: z.string().default(""),
+  sizeLabel: z.string().default(""),
+  sizeBytes: z.number().nonnegative().default(0),
+  fileType: z.enum(supportDocFileTypes).default("Others"),
+  vendorCode: z.string().min(1, "Vendor code is required"),
+})
+
+export const supportDocumentsSchema = z.object({
+  files: z.array(supportDocumentEntrySchema).default([]),
+})
+
+export type SupportDocumentEntry = z.infer<typeof supportDocumentEntrySchema>
+export type SupportDocumentsValues = z.infer<typeof supportDocumentsSchema>
+export type SupportDocumentsInput = z.input<typeof supportDocumentsSchema>
+
+export const supportDocumentsDefaults: SupportDocumentsValues = {
+  files: [],
+}
+
+export const docPartTagSchema = z.object({
+  docKey: z.string().min(1),
+  partNumbers: z.array(z.string().min(1)).default([]),
+})
+
+export const docPartTagsSchema = z.object({
+  tags: z.array(docPartTagSchema).default([]),
+})
+
+export type DocPartTag = z.infer<typeof docPartTagSchema>
+export type DocPartTagsValues = z.infer<typeof docPartTagsSchema>
+export type DocPartTagsInput = z.input<typeof docPartTagsSchema>
+
+export const stakeholderContactTypes = ["Internal", "External"] as const
+
+export const stakeholderEntrySchema = z
+  .object({
+    contactType: z.enum(stakeholderContactTypes).default("External"),
+    name: z.string().max(120, "Name must be 120 characters or less").default(""),
+    email: z
+      .string()
+      .max(160, "Email must be 160 characters or less")
+      .default(""),
+    vendorCodes: z.array(z.string().min(1)).default([]),
+  })
+  .superRefine((v, ctx) => {
+    const hasAny =
+      v.name.trim() !== "" ||
+      v.email.trim() !== "" ||
+      v.vendorCodes.length > 0
+    if (!hasAny) return
+    if (v.name.trim() === "") {
+      ctx.addIssue({
+        code: "custom",
+        message: "Name is required",
+        path: ["name"],
+      })
+    }
+    if (v.email.trim() === "") {
+      ctx.addIssue({
+        code: "custom",
+        message: "Email Address is required",
+        path: ["email"],
+      })
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter a valid email address",
+        path: ["email"],
+      })
+    }
+    if (v.vendorCodes.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Select at least one vendor",
+        path: ["vendorCodes"],
+      })
+    }
+  })
+
+export const stakeholdersSchema = z.object({
+  stakeholders: z.array(stakeholderEntrySchema).default([]),
+})
+
+export type StakeholderEntry = z.infer<typeof stakeholderEntrySchema>
+export type StakeholdersValues = z.infer<typeof stakeholdersSchema>
+export type StakeholdersInput = z.input<typeof stakeholdersSchema>
+
+export const stakeholdersDefaults: StakeholdersValues = {
+  stakeholders: [],
+}
+
+export const onBehalfReasons = [
+  "Supplier Does Not Have Covisint Access",
+  "Supplier Does Not Want To Use Appian",
+  "Supplier Requires Onboarding",
+  "Short Term Access Issue",
+  "Escalation",
+  "Other",
+] as const
+
+export const summarySchema = z.object({
+  onBehalfReason: z.string().min(1, "Select a reason for raising on behalf of supplier"),
+})
+
+export type SummaryValues = z.infer<typeof summarySchema>
+export type SummaryInput = z.input<typeof summarySchema>
+
+export const summaryDefaults: SummaryValues = {
+  onBehalfReason: "",
+}
