@@ -85,17 +85,53 @@ const optionalNumeric = (label: string) =>
     .or(z.literal(""))
     .default("")
 
-export const partChangeRowSchema = z.object({
-  partNumber: z.string().min(1),
-  newNetPrice: optionalNumeric("New Net Price"),
-  newPer: optionalNumeric("New PER"),
-  newMoq: optionalNumeric("New MOQ"),
-  newOrderMultiple: optionalNumeric("New Current Order Multiple (OM)"),
-  newLeadTime: optionalNumeric("New Lead Time"),
-  buyingType: z.enum(["General", "Blanket", "Spot"]).default("General"),
-  buyingTypeQty: optionalNumeric("Buying Type Qty"),
-  startDate: z.string().min(1, "Start Date is required."),
-})
+export const partChangeRowSchema = z
+  .object({
+    partNumber: z.string().min(1),
+    newNetPrice: optionalNumeric("New Net Price"),
+    newPer: optionalNumeric("New PER"),
+    newMoq: optionalNumeric("New MOQ"),
+    newOrderMultiple: optionalNumeric("New Current Order Multiple (OM)"),
+    newLeadTime: optionalNumeric("New Lead Time"),
+    buyingType: z.enum(["General", "Blanket", "Spot"]).default("General"),
+    buyingTypeQty: optionalNumeric("Buying Type Qty"),
+    startDate: z.string().min(1, "Start Date is required."),
+  })
+  .superRefine((v, ctx) => {
+    const newValues = [
+      v.newNetPrice,
+      v.newPer,
+      v.newMoq,
+      v.newOrderMultiple,
+      v.newLeadTime,
+      v.buyingTypeQty,
+    ].filter((s) => (s ?? "").trim() !== "")
+    if (newValues.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Enter at least one new value for the part.",
+        path: ["newNetPrice"],
+      })
+    }
+    if (v.buyingType !== "General" && (v.buyingTypeQty ?? "").trim() === "") {
+      ctx.addIssue({
+        code: "custom",
+        message: "Buying Type Qty is required for Blanket/Spot.",
+        path: ["buyingTypeQty"],
+      })
+    }
+    if ((v.startDate ?? "").trim() !== "") {
+      const today = new Date("2026-10-12T00:00:00Z").getTime()
+      const start = new Date(`${v.startDate}T00:00:00Z`).getTime()
+      if (!Number.isNaN(start) && start < today) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Start Date cannot be in the past.",
+          path: ["startDate"],
+        })
+      }
+    }
+  })
 
 export const partDetailsSchema = z.object({
   selectAllStartDate: z.string().default(""),

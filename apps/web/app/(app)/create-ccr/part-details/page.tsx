@@ -177,10 +177,25 @@ function PartDetailsForm() {
 
   const backHref = `/create-ccr/select-parts?${carryParams()}`
 
-  const rowErrors = (index: number) =>
-    triedValidate || form.formState.errors.partRows?.[index]?.startDate
-      ? form.formState.errors.partRows?.[index]?.startDate?.message
-      : undefined
+  const rowErrors = (index: number): string[] => {
+    const rowErr = form.formState.errors.partRows?.[index]
+    if (!rowErr || (!triedValidate && !form.formState.isSubmitted)) return []
+    const messages: string[] = []
+    const push = (v: unknown) => {
+      if (typeof v === "string" && v) messages.push(v)
+      else if (v && typeof v === "object" && "message" in v) {
+        const m = (v as { message?: unknown }).message
+        if (typeof m === "string" && m) messages.push(m)
+      }
+    }
+    if (rowErr && typeof rowErr === "object") {
+      Object.values(rowErr).forEach((fieldErr) => {
+        if (Array.isArray(fieldErr)) fieldErr.forEach(push)
+        else push(fieldErr)
+      })
+    }
+    return Array.from(new Set(messages))
+  }
 
   const goNext = (asDraft: boolean) => {
     setTriedValidate(true)
@@ -367,14 +382,21 @@ function PartDetailsForm() {
                     <TableBody>
                       {fields.map((field, i) => {
                         const part = parts[i]
-                        const err = rowErrors(i)
+                        const errs = rowErrors(i)
                         const startDate = watchedRows[i]?.startDate ?? ""
                         return (
                           <TableRow key={field.id}>
                             <TableCell className="px-2 py-1.5">
-                              {err ? (
-                                <span className="flex items-center gap-1 text-[11px] font-medium text-red-700">
-                                  <X className="size-3" /> :{err}
+                              {errs.length > 0 ? (
+                                <span className="flex flex-col gap-0.5">
+                                  {errs.map((message) => (
+                                    <span
+                                      key={message}
+                                      className="flex items-center gap-1 text-[11px] font-medium text-red-700"
+                                    >
+                                      <X className="size-3" /> :{message}
+                                    </span>
+                                  ))}
                                 </span>
                               ) : (
                                 <span className="text-neutral-300">—</span>
