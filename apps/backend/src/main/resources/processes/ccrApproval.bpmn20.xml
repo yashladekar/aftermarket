@@ -8,8 +8,8 @@
 
     <!--
       CCR approval: submitted -> manager approval -> finance approval -> outcome.
-      businessKey = CCR reference. Mirrors the claimLifecycle routing pattern:
-      first approval lands with the supervisor group, finance decides next.
+      businessKey = CCR reference. First approval lands with the supervisor group,
+      finance decides next.
       Service tasks only emit domain events; the JPA domain layer owns all
       business writes via #{domainEvents.*}.
     -->

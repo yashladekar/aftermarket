@@ -1,9 +1,9 @@
 # aftermarket Backend — Spring Boot + Flowable
 
-Single Spring Boot app owning the aftermarket claim/mandate domain (JPA, `app` schema)
+Single Spring Boot app owning the aftermarket CCR domain (JPA, `app` schema)
 plus embedded Flowable (own `flowable` schema). Mirrors the
-`aftermarket-poc-master` workflow patterns, adapted to the `diagram.svg` Claim
-Lifecycle and Mandate Approval flows and the Appian `MCI_*` domain model.
+`aftermarket-poc-master` workflow patterns, adapted to the CCR approval flow
+(`processes/ccrApproval.bpmn20.xml`) and the Appian `MCI_*` domain model.
 
 ## Prereqs
 
@@ -51,9 +51,8 @@ cd backend
 mvn test
 ```
 
-Covers the null-variable regression plus the full `claimLifecycle`
-(low-value approve, high-value finance route + reject) and
-`mandateApproval` (clearing + DOA) flows on H2.
+Covers the null-variable regression plus the full `ccrApproval`
+(manager → finance route, approve and reject paths) flow on H2.
 
 ## Seed users (password: `password`)
 
@@ -67,25 +66,21 @@ Covers the null-variable regression plus the full `claimLifecycle`
 
 - `POST /api/auth/login` → `{ token, user }`
 - `GET /api/auth/me`
-- `GET /api/claims?status=&...`, `POST /api/claims`, `GET /api/claims/:lineId`,
-  `PUT /api/claims/:lineId`, `POST /api/claims/:lineId/submit`,
-  `GET /api/claims/:lineId/history|/audit|/notes`, `POST /api/claims/:lineId/notes`,
-  `GET|POST /api/claims/:lineId/attachments`
+- `GET /api/ccrs?…`, `POST /api/ccrs`, `GET|PUT /api/ccrs/:reference`,
+  `POST /api/ccrs/:reference/submit`,
+  `GET /api/ccrs/:reference/history|/activity|/attachments`,
+  `GET /api/ccrs/catalog/vendors|/parts|/lookups`
 - `GET /api/tasks`, `GET /api/tasks/:id`, `POST /api/tasks/:id/complete {decision, comment?}`,
   `POST /api/tasks/:id/claim`
-- `GET /api/mandates`, `POST /api/mandates`, `POST /api/mandates/:number/submit`,
-  `GET /api/mandates/approvals/view`
 - `GET /api/notifications`, `GET /api/notifications/unread-count`,
   `POST /api/notifications/read-all|/:id/read`
-- `GET /api/lookups[/:name]`, `GET /actuator/health`
+- `GET /actuator/health`
 
 ## BPMN
 
-- `processes/claimLifecycle.bpmn20.xml` (key `claimLifecycle`, businessKey = claim lineId):
+- `processes/ccrApproval.bpmn20.xml` (key `ccrApproval`, businessKey = CCR reference):
   submit → manager approval (`supervisors`, reminder/escalation timers) →
-  finance gate (threshold, `finance`) → finalize → approved/rejected.
-- `processes/mandateApproval.bpmn20.xml` (key `mandateApproval`, businessKey = mandate number):
-  clearing review (`supervisors`) → DOA approval (`finance`) → outcome.
+  finance approval (`finance`) → finalize → approved/rejected.
 
 Role-based access is enforced at task completion (`assignee | candidate
-group | claim:read:all`); engine events emit role-targeted notifications.
+group | ccr:read:all`); engine events emit role-targeted notifications.

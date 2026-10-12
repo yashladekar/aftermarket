@@ -156,7 +156,7 @@ export default function TasksPage() {
               label="REQUEST TYPE |"
               value={requestType}
               onChange={(v) => setRequestType(v ?? "__any")}
-              options={["Claim", "Mandate", "CCR"]}
+              options={["CCR"]}
             />
             <div className="flex items-center justify-end gap-1">
               <Button size="icon-sm" variant="outline" className="size-7" type="button" title="Export">

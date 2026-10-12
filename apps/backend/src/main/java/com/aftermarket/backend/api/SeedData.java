@@ -44,9 +44,9 @@ public class SeedData implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        ensureGroup("employees", "Employees", "claim:create,claim:read:own,task:complete:employee");
-        ensureGroup("supervisors", "Supervisors", "claim:read:all,task:approve:manager,approval:review");
-        ensureGroup("finance", "Finance", "claim:read:all,task:approve:finance,report:read,approval:decide");
+        ensureGroup("employees", "Employees", "ccr:create,ccr:read:own,task:complete:employee");
+        ensureGroup("supervisors", "Supervisors", "ccr:read:all,task:approve:manager,approval:review");
+        ensureGroup("finance", "Finance", "ccr:read:all,task:approve:finance,report:read,approval:decide");
         ensureUser("employee1@aftermarket.dev", "Erin Employee", "ZZ0X", List.of("employees"));
         ensureUser("manager1@aftermarket.dev", "Morgan Manager", "ZZ1X", List.of("employees", "supervisors"));
         ensureUser("finance1@aftermarket.dev", "Frankie Finance", "ZZ1X", List.of("finance"));

@@ -6,7 +6,7 @@ import { useAftermarketSession } from "@/components/aftermarket/session-provider
 
 const primaryActions = [
   { label: "RAISE NEW COMMERCIAL CHANGE REQUEST", icon: Plus, href: "/create-ccr" },
-  { label: "CREATE SUPPLIER SPEND FORECAST", icon: Plus, href: "/mandate-request" },
+  { label: "CREATE SUPPLIER SPEND FORECAST", icon: Plus, href: "/" },
   { label: "REASSIGN CCR APPROVALS", icon: RefreshCw, href: "/tasks" },
 ]
 
