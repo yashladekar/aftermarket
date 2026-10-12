@@ -196,7 +196,7 @@ function SummaryForm() {
               control={form.control}
               render={({ field }) => (
                 <Select
-                  value={field.value ?? ""}
+                  value={field.value && field.value !== "" ? field.value : undefined}
                   onValueChange={(v) => field.onChange(v ?? "")}
                 >
                   <SelectTrigger
@@ -206,9 +206,6 @@ function SummaryForm() {
                     <SelectValue placeholder="-- Select a On Behalf Of Supplier Reason --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none" disabled>
-                      -- Select a On Behalf Of Supplier Reason --
-                    </SelectItem>
                     {onBehalfReasons.map((o) => (
                       <SelectItem key={o} value={o}>
                         {o}
