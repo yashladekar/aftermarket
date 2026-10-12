@@ -10,12 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select"
-import { filterOptions } from "@/lib/neo-data"
+import { filterOptions } from "@/lib/aftermarket-data"
 import { cn } from "@workspace/ui/lib/utils"
 import {
   emptyHomeFilters,
   type HomeFilters,
-} from "@/components/neo/neo-claims-table"
+} from "@/components/aftermarket/aftermarket-claims-table"
 
 function FilterSelect({
   label,
@@ -59,7 +59,7 @@ function FilterSelect({
   )
 }
 
-export function NeoFilters({
+export function AftermarketFilters({
   filters,
   onChange,
   claims,

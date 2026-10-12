@@ -9,7 +9,7 @@ import {
   ControlledTextField,
   FieldLabel,
   StaticField,
-} from "@/components/neo/wizard-fields"
+} from "@/components/aftermarket/wizard-fields"
 import {
   co2Delta,
   companyCodes,
@@ -18,8 +18,8 @@ import {
   purchGroups,
   purchOrgs,
   vehicleLines,
-} from "@/lib/neo-wizard"
-import type { WizardValues } from "@/lib/neo-schemas"
+} from "@/lib/aftermarket-wizard"
+import type { WizardValues } from "@/lib/aftermarket-schemas"
 
 export function Co2Step() {
   const { control } = useFormContext<WizardValues>()

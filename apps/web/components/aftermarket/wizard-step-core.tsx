@@ -21,9 +21,9 @@ import { Button } from "@workspace/ui/components/button"
 import {
   FieldError,
   FieldLabel,
-} from "@/components/neo/wizard-fields"
-import { buyerCodes, buyerNames } from "@/lib/neo-wizard"
-import type { WizardValues } from "@/lib/neo-schemas"
+} from "@/components/aftermarket/wizard-fields"
+import { buyerCodes, buyerNames } from "@/lib/aftermarket-wizard"
+import type { WizardValues } from "@/lib/aftermarket-schemas"
 import { cn } from "@workspace/ui/lib/utils"
 
 function BuyerPicker({

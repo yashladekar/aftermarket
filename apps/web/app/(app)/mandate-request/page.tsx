@@ -15,17 +15,17 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
-import { NeoHeader } from "@/components/neo/neo-header"
+import { AftermarketHeader } from "@/components/aftermarket/aftermarket-header"
 import {
   ControlledAreaField,
   ControlledCountInput,
   ControlledRadioInline,
   ControlledSelectField,
-} from "@/components/neo/wizard-fields"
-import { initialMandateForm } from "@/lib/neo-store"
-import { useApi } from "@/lib/neo-api"
-import { mandateSchema, type MandateValues } from "@/lib/neo-schemas"
-import { useNeoStore } from "@/lib/neo-store"
+} from "@/components/aftermarket/wizard-fields"
+import { initialMandateForm } from "@/lib/aftermarket-store"
+import { useApi } from "@/lib/aftermarket-api"
+import { mandateSchema, type MandateValues } from "@/lib/aftermarket-schemas"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { cn } from "@workspace/ui/lib/utils"
 
 const riskFactors = [
@@ -44,7 +44,7 @@ function MandateWizard() {
   const router = useRouter()
   const params = useSearchParams()
   const preselected = params.get("claim")
-  const { claims, approvals, addApproval, refresh } = useNeoStore()
+  const { claims, approvals, addApproval, refresh } = useAftermarketStore()
   const { request } = useApi()
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -156,7 +156,7 @@ function MandateWizard() {
   return (
     <FormProvider {...methods}>
     <div className="flex min-h-svh flex-col bg-neutral-100">
-      <NeoHeader active="home" />
+      <AftermarketHeader active="home" />
 
       <main className="flex-1 px-6 py-4">
         <div className="flex min-h-[70vh] flex-col bg-white shadow-sm">

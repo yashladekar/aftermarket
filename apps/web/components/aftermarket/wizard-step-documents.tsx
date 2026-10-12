@@ -26,9 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
-import { FieldError, FieldLabel } from "@/components/neo/wizard-fields"
-import { fileTypes } from "@/lib/neo-wizard"
-import type { WizardValues } from "@/lib/neo-schemas"
+import { FieldError, FieldLabel } from "@/components/aftermarket/wizard-fields"
+import { fileTypes } from "@/lib/aftermarket-wizard"
+import type { WizardValues } from "@/lib/aftermarket-schemas"
 import { cn } from "@workspace/ui/lib/utils"
 
 const ACCEPTED_EXT = [

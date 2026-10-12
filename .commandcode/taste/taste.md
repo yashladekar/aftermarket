@@ -12,5 +12,6 @@
  to fix only the named thing "for now" and not create/work on additional things). Confidence: 0.9
 - Expects every view (per-role dashboards, task/approval lists, activity logs) to stay in sync automatically and show real, current data — no stale values, hardcoded placeholders, or manual reloads needed. Confidence: 0.75
 - Requires pnpm as the package manager (explicitly: "you have to use pnpm"). Confidence: 0.9
+- Expects refactors/renames to be applied exhaustively across the whole codebase ("every section") — directories, files, identifiers, imports, configs, and docs — with no stale references left behind. Confidence: 0.65
 - Prefers organizing projects as a Turborepo monorepo (apps/*, packages/* layout) for easier project management. Confidence: 0.7
 - Prefers extracting genuinely shared/common code into workspace `packages/*`, but only when feasible — explicitly asks to skip extraction if there's nothing truly shared ("if possible, if not don't do it"). Favors pragmatism over forced abstraction. Confidence: 0.8

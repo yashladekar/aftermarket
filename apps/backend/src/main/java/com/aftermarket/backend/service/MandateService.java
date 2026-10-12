@@ -1,6 +1,6 @@
 package com.aftermarket.backend.service;
 
-import com.aftermarket.backend.config.NeoProperties;
+import com.aftermarket.backend.config.AftermarketProperties;
 import com.aftermarket.backend.domain.MandateRequest;
 import com.aftermarket.backend.repo.MandateRequestRepository;
 import com.aftermarket.backend.workflow.WorkflowFacade;
@@ -21,14 +21,14 @@ public class MandateService {
     private final MandateRequestRepository mandates;
     private final WorkflowFacade workflow;
     private final ActivityService activity;
-    private final NeoProperties properties;
+    private final AftermarketProperties properties;
     private final ObjectMapper mapper;
 
     public MandateService(
             MandateRequestRepository mandates,
             WorkflowFacade workflow,
             ActivityService activity,
-            NeoProperties properties,
+            AftermarketProperties properties,
             ObjectMapper mapper) {
         this.mandates = mandates;
         this.workflow = workflow;

@@ -1,25 +1,25 @@
 "use client"
 
-import { NeoHeader } from "@/components/neo/neo-header"
-import { NeoHero } from "@/components/neo/neo-hero"
-import { NeoFilters } from "@/components/neo/neo-filters"
+import { AftermarketHeader } from "@/components/aftermarket/aftermarket-header"
+import { AftermarketHero } from "@/components/aftermarket/aftermarket-hero"
+import { AftermarketFilters } from "@/components/aftermarket/aftermarket-filters"
 import {
-  NeoClaimsTable,
+  AftermarketClaimsTable,
   useHomeFiltersState,
-} from "@/components/neo/neo-claims-table"
-import { useNeoStore } from "@/lib/neo-store"
+} from "@/components/aftermarket/aftermarket-claims-table"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 
 export default function Page() {
   const [filters, setFilters] = useHomeFiltersState()
-  const { claims } = useNeoStore()
+  const { claims } = useAftermarketStore()
   return (
     <div className="min-h-svh bg-neutral-100">
-      <NeoHeader active="home" />
-      <NeoHero />
+      <AftermarketHeader active="home" />
+      <AftermarketHero />
 
       <main className="space-y-0 px-6 py-3">
-        <NeoFilters filters={filters} onChange={setFilters} claims={claims} />
-        <NeoClaimsTable filters={filters} />
+        <AftermarketFilters filters={filters} onChange={setFilters} claims={claims} />
+        <AftermarketClaimsTable filters={filters} />
       </main>
     </div>
   )

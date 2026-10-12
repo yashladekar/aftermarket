@@ -27,7 +27,7 @@ export async function loginAction(
       token = data.token
     }
   } catch {
-    return { error: "Could not reach the NEO backend. Try again." }
+    return { error: "Could not reach the AFTERMARKET backend. Try again." }
   }
 
   if (!token) {

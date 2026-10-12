@@ -19,8 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
-import { NeoHeader } from "@/components/neo/neo-header"
-import { useNeoStore } from "@/lib/neo-store"
+import { AftermarketHeader } from "@/components/aftermarket/aftermarket-header"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { cn } from "@workspace/ui/lib/utils"
 
 function MiniSelect({
@@ -78,7 +78,7 @@ function fmt(value?: string | null): string {
 const initialFilters = { query: "", requestType: "__any", decision: "__any" }
 
 export default function ApprovalRequestsPage() {
-  const { pendingApprovals, myApprovals, completeTask } = useNeoStore()
+  const { pendingApprovals, myApprovals, completeTask } = useAftermarketStore()
   const [view, setView] = useState<"pending" | "mine">("pending")
   const [f, setF] = useState(initialFilters)
   const [acting, setActing] = useState<string | null>(null)
@@ -123,7 +123,7 @@ export default function ApprovalRequestsPage() {
 
   return (
     <div className="flex min-h-svh flex-col bg-neutral-100">
-      <NeoHeader active="approval" />
+      <AftermarketHeader active="approval" />
 
       <main className="flex-1 space-y-0 px-6 py-3">
         {error && (

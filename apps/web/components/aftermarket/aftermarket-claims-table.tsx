@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
-import { useNeoStore } from "@/lib/neo-store"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { cn } from "@workspace/ui/lib/utils"
 
 const headers = [
@@ -123,8 +123,8 @@ export function claimMatches(
   return true
 }
 
-export function NeoClaimsTable({ filters }: { filters: HomeFilters }) {
-  const { claims } = useNeoStore()
+export function AftermarketClaimsTable({ filters }: { filters: HomeFilters }) {
+  const { claims } = useAftermarketStore()
   const rows = useMemo(
     () => claims.filter((r) => claimMatches(r, filters)),
     [claims, filters]

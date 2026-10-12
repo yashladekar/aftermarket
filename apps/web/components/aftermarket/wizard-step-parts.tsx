@@ -43,7 +43,7 @@ import {
   ControlledSelectField,
   FieldError,
   FieldLabel,
-} from "@/components/neo/wizard-fields"
+} from "@/components/aftermarket/wizard-fields"
 import {
   absoluteChange,
   initialPartDetail,
@@ -52,8 +52,8 @@ import {
   pctChange,
   plants,
   priceSign,
-} from "@/lib/neo-wizard"
-import type { WizardValues } from "@/lib/neo-schemas"
+} from "@/lib/aftermarket-wizard"
+import type { WizardValues } from "@/lib/aftermarket-schemas"
 import { cn } from "@workspace/ui/lib/utils"
 
 function PlantSelect({

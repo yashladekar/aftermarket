@@ -9,8 +9,8 @@ import {
   ListFilter,
   UserCheck,
 } from "lucide-react"
-import { useNeoStore } from "@/lib/neo-store"
-import { useNeoSession } from "@/components/neo/session-provider"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
+import { useAftermarketSession } from "@/components/aftermarket/session-provider"
 
 const kpiDefs = [
   { key: "open", label: "OPEN" },
@@ -30,9 +30,9 @@ const kpiIcons: Record<string, typeof CircleDot> = {
   mine: UserCheck,
 }
 
-export function NeoHero() {
-  const { claims, pendingApprovals, myApprovals } = useNeoStore()
-  const session = useNeoSession()
+export function AftermarketHero() {
+  const { claims, pendingApprovals, myApprovals } = useAftermarketStore()
+  const session = useAftermarketSession()
   const awaiting = claims.filter(
     (c) => c.status === "Awaiting Manager" || c.status === "Awaiting Finance"
   ).length
@@ -70,7 +70,7 @@ export function NeoHero() {
             </div>
           </div>
 
-          <h1 className="text-7xl font-black tracking-[0.35em]">NEO</h1>
+          <h1 className="text-7xl font-black tracking-[0.35em]">AFTERMARKET</h1>
 
           <div className="text-sm font-semibold tracking-[0.25em] text-amber-200/90">
             <p>Negotiation</p>

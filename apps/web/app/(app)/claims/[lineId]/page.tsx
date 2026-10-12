@@ -16,11 +16,11 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 import { Textarea } from "@workspace/ui/components/textarea"
-import { NeoHeader } from "@/components/neo/neo-header"
-import { FieldError } from "@/components/neo/wizard-fields"
-import { noteSchema, type NoteValues } from "@/lib/neo-schemas"
-import { useNeoStore } from "@/lib/neo-store"
-import { useApi } from "@/lib/neo-api"
+import { AftermarketHeader } from "@/components/aftermarket/aftermarket-header"
+import { FieldError } from "@/components/aftermarket/wizard-fields"
+import { noteSchema, type NoteValues } from "@/lib/aftermarket-schemas"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
+import { useApi } from "@/lib/aftermarket-api"
 import { cn } from "@workspace/ui/lib/utils"
 
 const tabs = [
@@ -203,7 +203,7 @@ export default function ClaimDetailPage() {
   const params = useParams()
   const router = useRouter()
   const lineId = decodeURIComponent(String(params.lineId ?? ""))
-  const { claims, refresh, version } = useNeoStore()
+  const { claims, refresh, version } = useAftermarketStore()
   const { request } = useApi()
   const claim = claims.find((c) => c.lineId === lineId)
   const workflowStatus = claim?.status ?? ""
@@ -256,7 +256,7 @@ export default function ClaimDetailPage() {
   if (!claim) {
     return (
       <div className="flex min-h-svh flex-col bg-neutral-100">
-        <NeoHeader active="home" />
+        <AftermarketHeader active="home" />
         <main className="flex-1 px-6 py-10 text-center">
           <p className="text-sm text-neutral-600">
             Claim {lineId} not found.
@@ -302,7 +302,7 @@ export default function ClaimDetailPage() {
 
   return (
     <div className="flex min-h-svh flex-col bg-neutral-100">
-      <NeoHeader active="home" />
+      <AftermarketHeader active="home" />
 
       <div className="flex items-center justify-between bg-emerald-800 px-6 py-2.5 text-white">
         <h1 className="text-lg font-semibold">

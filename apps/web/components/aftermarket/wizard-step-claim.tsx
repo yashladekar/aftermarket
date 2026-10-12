@@ -12,7 +12,7 @@ import {
   ControlledCheckRow,
   FieldLabel,
   StaticField,
-} from "@/components/neo/wizard-fields"
+} from "@/components/aftermarket/wizard-fields"
 import {
   commodityAreas,
   fiscalYears,
@@ -27,9 +27,9 @@ import {
   vendorOptions,
   calendarisedForecastLocal,
   calendarisedForecastGbp,
-} from "@/lib/neo-wizard"
-import { likelihoods, maturityStatuses } from "@/lib/neo-wizard"
-import type { WizardValues } from "@/lib/neo-schemas"
+} from "@/lib/aftermarket-wizard"
+import { likelihoods, maturityStatuses } from "@/lib/aftermarket-wizard"
+import type { WizardValues } from "@/lib/aftermarket-schemas"
 
 export function ClaimDetailsStep() {
   const { control, setValue } = useFormContext<WizardValues>()

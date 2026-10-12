@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Bell, ChevronDown, House, ListTodo, Stamp, Network } from "lucide-react"
 import { logoutAction } from "@/app/actions/auth"
-import { useNeoSession } from "@/components/neo/session-provider"
+import { useAftermarketSession } from "@/components/aftermarket/session-provider"
 import { cn } from "@workspace/ui/lib/utils"
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
-import { useNeoStore } from "@/lib/neo-store"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 
 const tabs = [
   { key: "home", label: "HOME", icon: House, href: "/" },
@@ -24,10 +24,10 @@ const tabs = [
   },
 ] as const
 
-export function NeoHeader({ active }: { active?: string }) {
+export function AftermarketHeader({ active }: { active?: string }) {
   const current = active ?? "home"
-  const session = useNeoSession()
-  const { notifications, unreadCount, markAllNotificationsRead } = useNeoStore()
+  const session = useAftermarketSession()
+  const { notifications, unreadCount, markAllNotificationsRead } = useAftermarketStore()
   const userName = session?.name ?? "Buyer Officer"
   const initials = userName
     .split(" ")

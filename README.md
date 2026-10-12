@@ -1,11 +1,11 @@
-# NEO — Turborepo monorepo
+# AFTERMARKET — Turborepo monorepo
 
-A pnpm + [Turborepo](https://turbo.build/repo) workspace for the NEO project.
+A pnpm + [Turborepo](https://turbo.build/repo) workspace for the AFTERMARKET project.
 
 ## Layout
 
 ```
-neo/
+aftermarket/
 ├── apps/
 │   ├── backend/   # Spring Boot + embedded Flowable service (Java 25, Maven)
 │   └── web/       # Next.js frontend (React 19, Tailwind v4)

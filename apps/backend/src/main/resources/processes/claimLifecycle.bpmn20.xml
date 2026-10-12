@@ -4,7 +4,7 @@
              xmlns:flowable="http://flowable.org/bpmn"
              typeLanguage="http://www.w3.org/2001/XMLSchema"
              expressionLanguage="http://www.w3.org/1999/XPath"
-             targetNamespace="http://neo.com/workflow">
+             targetNamespace="http://aftermarket.com/workflow">
 
     <!--
       Claim lifecycle: creation -> supplier negotiations -> manager approval ->

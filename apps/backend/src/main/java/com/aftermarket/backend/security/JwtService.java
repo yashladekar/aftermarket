@@ -10,7 +10,7 @@ import java.util.List;
 import javax.crypto.SecretKey;
 import org.springframework.stereotype.Service;
 
-import com.aftermarket.backend.config.NeoProperties;
+import com.aftermarket.backend.config.AftermarketProperties;
 
 @Service
 public class JwtService {
@@ -18,7 +18,7 @@ public class JwtService {
     private final SecretKey key;
     private final long expirySeconds;
 
-    public JwtService(NeoProperties properties) {
+    public JwtService(AftermarketProperties properties) {
         this.key = Keys.hmacShaKeyFor(properties.jwt().secret().getBytes(StandardCharsets.UTF_8));
         this.expirySeconds = properties.jwt().expirySeconds();
     }

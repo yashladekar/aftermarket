@@ -5,7 +5,7 @@ import type { SessionUser } from "@/lib/session";
 
 const SessionContext = createContext<SessionUser | null>(null);
 
-export function NeoSessionProvider({
+export function AftermarketSessionProvider({
   session,
   children,
 }: {
@@ -19,6 +19,6 @@ export function NeoSessionProvider({
   );
 }
 
-export function useNeoSession(): SessionUser | null {
+export function useAftermarketSession(): SessionUser | null {
   return useContext(SessionContext);
 }

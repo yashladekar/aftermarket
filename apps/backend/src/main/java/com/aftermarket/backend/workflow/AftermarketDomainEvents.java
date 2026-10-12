@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.aftermarket.backend.config.NeoProperties;
+import com.aftermarket.backend.config.AftermarketProperties;
 import com.aftermarket.backend.domain.Claim;
 import com.aftermarket.backend.domain.MandateRequest;
 import com.aftermarket.backend.repo.ApprovalRuleRepository;
@@ -16,24 +16,24 @@ import com.aftermarket.backend.service.ActivityService;
 import com.aftermarket.backend.service.NotificationService;
 
 @Component("domainEvents")
-public class NeoDomainEvents {
+public class AftermarketDomainEvents {
 
-    private static final Logger log = LoggerFactory.getLogger(NeoDomainEvents.class);
+    private static final Logger log = LoggerFactory.getLogger(AftermarketDomainEvents.class);
 
     private final ClaimRepository claims;
     private final MandateRequestRepository mandates;
     private final ApprovalRuleRepository rules;
     private final NotificationService notifications;
     private final ActivityService activity;
-    private final NeoProperties properties;
+    private final AftermarketProperties properties;
 
-    public NeoDomainEvents(
+    public AftermarketDomainEvents(
             ClaimRepository claims,
             MandateRequestRepository mandates,
             ApprovalRuleRepository rules,
             NotificationService notifications,
             ActivityService activity,
-            NeoProperties properties) {
+            AftermarketProperties properties) {
         this.claims = claims;
         this.mandates = mandates;
         this.rules = rules;

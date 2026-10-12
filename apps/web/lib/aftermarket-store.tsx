@@ -274,7 +274,7 @@ type Store = {
 
 const Ctx = createContext<Store | null>(null)
 
-export function aftermarketStoreProvider({ children }: { children: React.ReactNode }) {
+export function AftermarketStoreProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [backendClaims, setBackendClaims] = useState<ClaimRow[]>([])
   const [pendingApprovals, setPendingApprovals] = useState<PendingApprovalItem[]>([])
@@ -401,8 +401,8 @@ export function aftermarketStoreProvider({ children }: { children: React.ReactNo
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-export function useaftermarketStore() {
+export function useAftermarketStore() {
   const s = useContext(Ctx)
-  if (!s) throw new Error("useaftermarketStore must be used inside aftermarketStoreProvider")
+  if (!s) throw new Error("useAftermarketStore must be used inside AftermarketStoreProvider")
   return s
 }

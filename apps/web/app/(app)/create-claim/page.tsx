@@ -7,24 +7,24 @@ import { FormProvider, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowLeft, ArrowRight, Check, Circle, X } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { NeoHeader } from "@/components/neo/neo-header"
-import { CoreDataStep } from "@/components/neo/wizard-step-core"
-import { ClaimDetailsStep } from "@/components/neo/wizard-step-claim"
-import { DocumentsStep } from "@/components/neo/wizard-step-documents"
-import { Co2Step, LumpSumStep } from "@/components/neo/wizard-step-co2-lumpsum"
-import { PartsStep } from "@/components/neo/wizard-step-parts"
+import { AftermarketHeader } from "@/components/aftermarket/aftermarket-header"
+import { CoreDataStep } from "@/components/aftermarket/wizard-step-core"
+import { ClaimDetailsStep } from "@/components/aftermarket/wizard-step-claim"
+import { DocumentsStep } from "@/components/aftermarket/wizard-step-documents"
+import { Co2Step, LumpSumStep } from "@/components/aftermarket/wizard-step-co2-lumpsum"
+import { PartsStep } from "@/components/aftermarket/wizard-step-parts"
 import {
   wizardSteps,
   type WizardStepKey,
-} from "@/lib/neo-wizard"
+} from "@/lib/aftermarket-wizard"
 import {
   stepSchemas,
   wizardSchema,
   type WizardValues,
-} from "@/lib/neo-schemas"
-import { useNeoStore } from "@/lib/neo-store"
-import { useApi } from "@/lib/neo-api"
-import type { ClaimRow } from "@/lib/neo-data"
+} from "@/lib/aftermarket-schemas"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
+import { useApi } from "@/lib/aftermarket-api"
+import type { ClaimRow } from "@/lib/aftermarket-data"
 import { cn } from "@workspace/ui/lib/utils"
 
 function fmtDate(d: Date | undefined) {
@@ -108,7 +108,7 @@ function WizardTitle() {
 
 function CreateClaimWizard() {
   const router = useRouter()
-  const { addClaim, nextLineId, refresh } = useNeoStore()
+  const { addClaim, nextLineId, refresh } = useAftermarketStore()
   const { request } = useApi()
   const [step, setStep] = useState<WizardStepKey>("core")
   const [saved, setSaved] = useState<string | null>(null)
@@ -266,7 +266,7 @@ function CreateClaimWizard() {
   return (
     <FormProvider {...methods}>
       <div className="flex min-h-svh flex-col bg-neutral-100">
-        <NeoHeader active="home" />
+        <AftermarketHeader active="home" />
 
         <main className="flex-1 px-6 py-4">
           <div className="flex min-h-[70vh] flex-col bg-white shadow-sm">

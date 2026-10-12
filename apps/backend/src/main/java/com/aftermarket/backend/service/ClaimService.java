@@ -1,6 +1,6 @@
 package com.aftermarket.backend.service;
 
-import com.aftermarket.backend.config.NeoProperties;
+import com.aftermarket.backend.config.AftermarketProperties;
 import com.aftermarket.backend.domain.Claim;
 import com.aftermarket.backend.repo.ClaimRepository;
 import com.aftermarket.backend.workflow.WorkflowFacade;
@@ -22,14 +22,14 @@ public class ClaimService {
     private final ClaimRepository claims;
     private final WorkflowFacade workflow;
     private final ActivityService activity;
-    private final NeoProperties properties;
+    private final AftermarketProperties properties;
     private final ObjectMapper mapper;
 
     public ClaimService(
             ClaimRepository claims,
             WorkflowFacade workflow,
             ActivityService activity,
-            NeoProperties properties,
+            AftermarketProperties properties,
             ObjectMapper mapper) {
         this.claims = claims;
         this.workflow = workflow;
