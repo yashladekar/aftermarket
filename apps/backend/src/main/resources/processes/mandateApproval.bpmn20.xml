@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath"
+             targetNamespace="http://neo.com/workflow">
+
+    <!--
+      Mandate approval: link claims -> Local Clearing House review -> DOA forum
+      approval -> outcome. businessKey = mandate request number.
+    -->
+    <process id="mandateApproval" name="Mandate Approval" isExecutable="true">
+
+        <startEvent id="start" name="Mandate submitted"/>
+
+        <serviceTask id="recordMandate"
+                     name="Record mandate"
+                     flowable:expression="#{domainEvents.handle(execution, 'MANDATE_SUBMITTED')}"/>
+
+        <serviceTask id="notifyClearing"
+                     name="Notify clearing house"
+                     flowable:expression="#{domainEvents.handle(execution, 'CLEARING_REVIEW_REQUESTED')}"/>
+
+        <userTask id="clearingReview"
+                  name="Local Clearing House review"
+                  flowable:candidateGroups="${supervisorGroup}"
+                  flowable:formKey="clearingReview"
+                  flowable:dueDate="${managerReminderDuration}"/>
+
+        <exclusiveGateway id="clearingDecisionGateway" name="Clearing decision" default="flow-clearing-not-approved"/>
+
+        <serviceTask id="notifyDoa"
+                     name="Notify DOA forum"
+                     flowable:expression="#{domainEvents.handle(execution, 'DOA_APPROVAL_REQUESTED')}"/>
+
+        <userTask id="doaApproval"
+                  name="DOA approval"
+                  flowable:candidateGroups="${financeGroup}"
+                  flowable:formKey="doaApproval"/>
+
+        <serviceTask id="finalizeMandate"
+                     name="Finalize mandate"
+                     flowable:expression="#{domainEvents.finalizeMandate(execution)}"/>
+
+        <exclusiveGateway id="outcomeGateway" name="Outcome" default="flow-outcome-rejected"/>
+
+        <serviceTask id="notifyOutcome"
+                     name="Notify approval"
+                     flowable:expression="#{domainEvents.handle(execution, 'MANDATE_FINAL_OUTCOME')}"/>
+
+        <serviceTask id="notifyRejected"
+                     name="Notify rejection"
+                     flowable:expression="#{domainEvents.handle(execution, 'MANDATE_FINAL_OUTCOME')}"/>
+
+        <endEvent id="completed" name="Approved"/>
+
+        <endEvent id="rejected" name="Rejected"/>
+
+        <sequenceFlow id="flow-start" sourceRef="start" targetRef="recordMandate"/>
+        <sequenceFlow id="flow-recorded" sourceRef="recordMandate" targetRef="notifyClearing"/>
+        <sequenceFlow id="flow-clearing-notified" sourceRef="notifyClearing" targetRef="clearingReview"/>
+        <sequenceFlow id="flow-clearing-decided" sourceRef="clearingReview" targetRef="clearingDecisionGateway"/>
+        <sequenceFlow id="flow-clearing-approved" sourceRef="clearingDecisionGateway" targetRef="notifyDoa">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${execution.getVariable('approved') == true}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow-clearing-not-approved" sourceRef="clearingDecisionGateway" targetRef="finalizeMandate"/>
+        <sequenceFlow id="flow-doa-notified" sourceRef="notifyDoa" targetRef="doaApproval"/>
+        <sequenceFlow id="flow-doa-decided" sourceRef="doaApproval" targetRef="finalizeMandate"/>
+        <sequenceFlow id="flow-finalized" sourceRef="finalizeMandate" targetRef="outcomeGateway"/>
+        <sequenceFlow id="flow-outcome-approved" sourceRef="outcomeGateway" targetRef="notifyOutcome">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${execution.getVariable('approved') == true}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow-outcome-rejected" sourceRef="outcomeGateway" targetRef="notifyRejected"/>
+        <sequenceFlow id="flow-approved-end" sourceRef="notifyOutcome" targetRef="completed"/>
+        <sequenceFlow id="flow-rejected-end" sourceRef="notifyRejected" targetRef="rejected"/>
+    </process>
+</definitions>

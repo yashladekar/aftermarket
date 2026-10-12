@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(mvn:*)",
+      "Shell(more:*)",
+      "Shell(java:*)",
+      "powershell",
+      "Shell(pnpm:*)",
+      "Shell(dir:*)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

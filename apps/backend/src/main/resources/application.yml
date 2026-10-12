@@ -1,0 +1,49 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: aftermarket-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/aftermarket?createDatabaseIfNotExist=true&nullDatabaseMeansCurrent=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+flowable:
+  database-schema-update: true
+  async-executor-activate: true
+  async-executor-default-async-job-acquire-wait-time: 1s
+  async-executor-default-timer-job-acquire-wait-time: 1s
+  history-level: full
+  idm:
+    enabled: false
+  process:
+    definition-cache-limit: 128
+
+aftermarket:
+  jwt:
+    secret: ${aftermarket_JWT_SECRET:7bd71c8243d5cf453b35643796d8e5f2505b5020a03df051746e176c3e078f67}
+    expiry-seconds: ${aftermarket_JWT_EXPIRY:86400}
+  finance-threshold: ${FINANCE_THRESHOLD:1000}
+  manager-reminder-duration: ${MANAGER_REMINDER_DURATION:PT48H}
+  manager-escalation-duration: ${MANAGER_ESCALATION_DURATION:PT120H}
+  storage-dir: ${STORAGE_DIR:./storage}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

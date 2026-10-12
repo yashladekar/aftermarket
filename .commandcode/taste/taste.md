@@ -1,0 +1,16 @@
+- When extending frontend, preserve existing styling/design system and make new pages match it rather than restyling. Confidence: 0.95
+- When a reference/base project exists, reuse its integration patterns and feature set for new work rather than designing greenfield. Confidence: 0.9
+- When given a workflow diagram/spec for migration, treat it as the authoritative source and implement the flow to match it exactly (e.g. BPMN that faithfully mirrors the provided diagram). Confidence: 0.9
+- Prefers Java 25 for backend services. Confidence: 0.85
+- Prefers MySQL over PostgreSQL with schema.sql-managed schema for persistence. Confidence: 0.85
+- Prefers simple creator/approver role split (user creates, manager approves/rejects) with role-based approvals and notifications surfaced in both frontend and backend. Confidence: 0.85
+- Prefers complete end-to-end wiring with all frontend screens connected to backend and workflow and all BPMN flows working, rather than partial or stubbed integration. Confidence: 0.9
+- Works against locally-installed services in their own environment rather than Docker (no Docker available); expects fixes/setup to target the local install. Confidence: 0.75
+- Wants framework-managed tables (e.g. Flowable ACT_* tables, Hibernate/JPA tables) auto-generated on app startup via configuration instead of manual SQL/init scripts. Confidence: 0.75
+- Prefers moving promptly from planning to implementation; don't linger in plan mode — once a plan is formed, start making the changes. Confidence: 0.6
+- Prefers tightly-scoped changes: when they report a specific bug/issue, fix that alone rather than expanding into a broader multi-part plan or unrelated cleanup. Confidence: 0.8
+ to fix only the named thing "for now" and not create/work on additional things). Confidence: 0.9
+- Expects every view (per-role dashboards, task/approval lists, activity logs) to stay in sync automatically and show real, current data — no stale values, hardcoded placeholders, or manual reloads needed. Confidence: 0.75
+- Requires pnpm as the package manager (explicitly: "you have to use pnpm"). Confidence: 0.9
+- Prefers organizing projects as a Turborepo monorepo (apps/*, packages/* layout) for easier project management. Confidence: 0.7
+- Prefers extracting genuinely shared/common code into workspace `packages/*`, but only when feasible — explicitly asks to skip extraction if there's nothing truly shared ("if possible, if not don't do it"). Favors pragmatism over forced abstraction. Confidence: 0.8

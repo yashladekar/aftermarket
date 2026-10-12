@@ -1,0 +1,32 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: aftermarket-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: manager
+      MYSQL_DATABASE: aftermarket
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d:ro
+
+  backend:
+    build: .
+    container_name: aftermarket-backend
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aftermarket?nullDatabaseMeansCurrent=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: manager
+      aftermarket_JWT_SECRET: dev-secret-change-me-min-32-chars-long-xxxxxx
+      STORAGE_DIR: /data/storage
+    ports:
+      - "8080:8080"
+    volumes:
+      - aftermarketstorage:/data/storage
+
+volumes:
+  mysqldata:
+  aftermarketstorage:

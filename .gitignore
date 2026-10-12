@@ -1,0 +1,80 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.next
+
+# Turborepo
+.turbo/
+
+# Build outputs
+dist/
+build/
+out/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Backend (Java/Maven) — apps/backend
+apps/backend/target/
+apps/backend/.classpath
+apps/backend/.project
+apps/backend/.settings/
+apps/backend/*.iml
+apps/backend/.idea/
+apps/backend/bin/
+apps/backend/out/
+apps/backend/*.log
+apps/backend/dependency-reduced-pom.xml
+apps/backend/storage/
+
+# Frontend (Next.js) — apps/web
+apps/web/.next/
+apps/web/dist/
+apps/web/build/
+apps/web/.vercel/
+apps/web/.env.local
+apps/web/.env.*.local
+apps/web/npm-debug.log*
+apps/web/yarn-debug.log*
+apps/web/yarn-error.log*
+apps/web/pnpm-debug.log*
+apps/web/.pnp
+apps/web/.pnp.js
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+*.iml
+.vscode-wsl
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+.docker/
+.dockerignore
+
+# Environment
+.env
+.env.local
+*.pem
+*.key
+
+# Temporary files
+*.tmp
+*.bak
+.tmp/
+temp/

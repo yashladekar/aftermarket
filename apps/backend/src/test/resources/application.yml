@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: aftermarket-backend-test
+  datasource:
+    url: jdbc:h2:mem:aftermarket-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;NON_KEYWORDS=VALUE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: PUBLIC
+    open-in-view: false
+
+flowable:
+  database-schema-update: true
+  async-executor-activate: false
+  history-level: full
+  idm:
+    enabled: false
+
+aftermarket:
+  jwt:
+    secret: test-secret-change-me-min-32-chars-long-xxxxxx
+    expiry-seconds: 3600
+  finance-threshold: 1000
+  manager-reminder-duration: PT4S
+  manager-escalation-duration: PT9S
+  storage-dir: ./target/test-storage
