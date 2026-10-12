@@ -1,7 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useEffect, useMemo, useState } from "react"
+import { useForm, useWatch } from "react-hook-form"
+import {
+  parseAsInteger,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryStates,
+} from "nuqs"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   CircleCheck,
@@ -59,6 +65,23 @@ import {
 import { FieldError } from "@/components/aftermarket/wizard-fields"
 
 const ROW_OPTIONS = [10, 25, 50] as const
+const workQueueQueryParsers = {
+  vendorQuery: parseAsString.withDefault(""),
+  partQuery: parseAsString.withDefault(""),
+  codeRefQuery: parseAsString.withDefault(""),
+  ccrType: parseAsStringEnum(["Any", ...ccrTypeOptions]).withDefault("Any"),
+  priority: parseAsStringEnum(["Any", "High", "Medium", "Low"]).withDefault(
+    "Any"
+  ),
+  dateRequested: parseAsStringEnum([
+    "Any",
+    "Last 7 days",
+    "Last 30 days",
+    "Last 90 days",
+  ]).withDefault("Any"),
+  page: parseAsInteger.withDefault(1),
+  rowsPerPage: parseAsInteger.withDefault(10),
+}
 
 type CcrColumnKey =
   | "reference"
@@ -156,7 +179,7 @@ function exportRowsCsv(rows: CcrRow[], visible: Set<CcrColumnKey>) {
   document.body.appendChild(link)
   link.click()
   link.remove()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 function InfoTip({ label }: { label: string }) {
@@ -242,22 +265,49 @@ function PriorityCell({ priority }: { priority: CcrPriority }) {
 }
 
 export function CcrWorkQueue() {
+  const [query, setQuery] = useQueryStates(workQueueQueryParsers)
   const form = useForm<WorkQueueFilterInput, unknown, WorkQueueFilters>({
     resolver: zodResolver(workQueueFilterSchema),
     defaultValues: workQueueFilterDefaults,
   })
-  const [applied, setApplied] = useState<WorkQueueFilters>(
-    workQueueFilterDefaults
+  const { reset: resetForm } = form
+  const rowsPerPage = ROW_OPTIONS.includes(
+    query.rowsPerPage as (typeof ROW_OPTIONS)[number]
   )
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10)
-  const [page, setPage] = useState(1)
+    ? query.rowsPerPage
+    : ROW_OPTIONS[0]
+  const page = Math.max(1, query.page)
   const [visibleColumns, setVisibleColumns] = useState<Set<CcrColumnKey>>(
     () => new Set(columnDefs.map((c) => c.key))
   )
+  const ccrTypeValue = useWatch({ control: form.control, name: "ccrType" })
+  const priorityValue = useWatch({ control: form.control, name: "priority" })
+  const dateRequestedValue = useWatch({
+    control: form.control,
+    name: "dateRequested",
+  })
+
+  useEffect(() => {
+    resetForm({
+      vendorQuery: query.vendorQuery,
+      partQuery: query.partQuery,
+      codeRefQuery: query.codeRefQuery,
+      ccrType: query.ccrType,
+      priority: query.priority,
+      dateRequested: query.dateRequested,
+    })
+  }, [
+    resetForm,
+    query.vendorQuery,
+    query.partQuery,
+    query.codeRefQuery,
+    query.ccrType,
+    query.priority,
+    query.dateRequested,
+  ])
 
   const onSubmit = form.handleSubmit((values) => {
-    setApplied(values)
-    setPage(1)
+    void setQuery({ ...values, page: 1 }, { history: "push" })
   })
 
   const toggleColumn = (key: CcrColumnKey, on: boolean) => {
@@ -269,10 +319,12 @@ export function CcrWorkQueue() {
     })
   }
 
-  const reset = () => {
-    form.reset(workQueueFilterDefaults)
-    setApplied(workQueueFilterDefaults)
-    setPage(1)
+  const resetFilters = () => {
+    resetForm(workQueueFilterDefaults)
+    void setQuery(
+      { ...workQueueFilterDefaults, page: 1 },
+      { history: "push" }
+    )
   }
 
   const show = (key: CcrColumnKey) => visibleColumns.has(key)
@@ -280,9 +332,9 @@ export function CcrWorkQueue() {
 
   const rows = useMemo(() => {
     const q = (s: string) => s.trim().toLowerCase()
-    const vendorQ = q(applied.vendorQuery)
-    const partQ = q(applied.partQuery)
-    const codeQ = q(applied.codeRefQuery)
+    const vendorQ = q(query.vendorQuery)
+    const partQ = q(query.partQuery)
+    const codeQ = q(query.codeRefQuery)
     const now = new Date("2026-10-12T00:00:00Z").getTime()
     const daysFor: Record<string, number> = {
       "Last 7 days": 7,
@@ -304,12 +356,12 @@ export function CcrWorkQueue() {
           !`${r.vendorCode} ${r.reference}`.toLowerCase().includes(codeQ)
         )
           return false
-        if (applied.ccrType !== "Any" && r.ccrType !== applied.ccrType)
+        if (query.ccrType !== "Any" && r.ccrType !== query.ccrType)
           return false
-        if (applied.priority !== "Any" && r.priority !== applied.priority)
+        if (query.priority !== "Any" && r.priority !== query.priority)
           return false
-        if (applied.dateRequested !== "Any") {
-          const days = daysFor[applied.dateRequested] ?? 0
+        if (query.dateRequested !== "Any") {
+          const days = daysFor[query.dateRequested] ?? 0
           const ageDays =
             (now - new Date(`${r.dateRequested}T00:00:00Z`).getTime()) /
             86400000
@@ -318,10 +370,30 @@ export function CcrWorkQueue() {
         return true
       })
       .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
-  }, [applied])
+  }, [
+    query.vendorQuery,
+    query.partQuery,
+    query.codeRefQuery,
+    query.ccrType,
+    query.priority,
+    query.dateRequested,
+  ])
 
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage))
   const safePage = Math.min(page, pageCount)
+  useEffect(() => {
+    const nextRowsPerPage = ROW_OPTIONS.includes(
+      query.rowsPerPage as (typeof ROW_OPTIONS)[number]
+    )
+      ? query.rowsPerPage
+      : ROW_OPTIONS[0]
+    if (query.page !== safePage || query.rowsPerPage !== nextRowsPerPage) {
+      void setQuery(
+        { page: safePage, rowsPerPage: nextRowsPerPage },
+        { history: "replace" }
+      )
+    }
+  }, [pageCount, query.page, query.rowsPerPage, safePage, setQuery])
   const visible = rows.slice(
     (safePage - 1) * rowsPerPage,
     safePage * rowsPerPage
@@ -383,7 +455,7 @@ export function CcrWorkQueue() {
 
           <FilterSelect
             label="CCR TYPE |"
-            value={form.watch("ccrType") ?? "Any"}
+            value={ccrTypeValue ?? "Any"}
             onChange={(v) =>
               form.setValue("ccrType", v as WorkQueueFilters["ccrType"])
             }
@@ -392,7 +464,7 @@ export function CcrWorkQueue() {
           />
           <FilterSelect
             label="PRIORITY |"
-            value={form.watch("priority") ?? "Any"}
+            value={priorityValue ?? "Any"}
             onChange={(v) =>
               form.setValue("priority", v as WorkQueueFilters["priority"])
             }
@@ -400,7 +472,7 @@ export function CcrWorkQueue() {
           />
           <FilterSelect
             label="DATE REQUESTED |"
-            value={form.watch("dateRequested") ?? "Any"}
+            value={dateRequestedValue ?? "Any"}
             onChange={(v) =>
               form.setValue("dateRequested", v as WorkQueueFilters["dateRequested"])
             }
@@ -417,8 +489,7 @@ export function CcrWorkQueue() {
                 key={n}
                 type="button"
                 onClick={() => {
-                  setRowsPerPage(n)
-                  setPage(1)
+                  void setQuery({ rowsPerPage: n, page: 1 }, { history: "push" })
                 }}
                 className={cn(
                   "min-w-6 px-1 py-0.5 text-[11px] font-bold",
@@ -473,7 +544,7 @@ export function CcrWorkQueue() {
               size="icon-sm"
               className="size-7"
               title="Reset filters"
-              onClick={reset}
+              onClick={resetFilters}
             >
               <RefreshCw className="size-3.5" />
             </Button>
@@ -724,7 +795,9 @@ export function CcrWorkQueue() {
             size="sm"
             className="h-6 px-2 text-[11px]"
             disabled={safePage <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() =>
+              void setQuery({ page: Math.max(1, safePage - 1) }, { history: "push" })
+            }
           >
             Prev
           </Button>
@@ -737,7 +810,9 @@ export function CcrWorkQueue() {
             size="sm"
             className="h-6 px-2 text-[11px]"
             disabled={safePage >= pageCount}
-            onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            onClick={() =>
+              void setQuery({ page: Math.min(pageCount, safePage + 1) }, { history: "push" })
+            }
           >
             Next
           </Button>

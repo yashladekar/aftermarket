@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
 
 import "@workspace/ui/globals.css"
@@ -28,7 +29,9 @@ export default function RootLayout({
       )}
     >
       <body>
-        <TooltipProvider>{children}</TooltipProvider>
+        <NuqsAdapter>
+          <TooltipProvider>{children}</TooltipProvider>
+        </NuqsAdapter>
       </body>
     </html>
   )
