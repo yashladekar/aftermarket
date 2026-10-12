@@ -196,7 +196,7 @@ export default function ApprovalRequestsPage() {
               label="REQUEST TYPE |"
               value={f.requestType}
               onChange={(v) => setF({ ...f, requestType: v ?? "__any" })}
-              options={["Claim", "Mandate"]}
+              options={["Claim", "Mandate", "CCR"]}
             />
             {view === "mine" && (
               <MiniSelect

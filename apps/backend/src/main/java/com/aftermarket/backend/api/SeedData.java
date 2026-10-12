@@ -22,18 +22,24 @@ public class SeedData implements ApplicationRunner {
     private final MembershipRepository memberships;
     private final ApprovalRuleRepository rules;
     private final PasswordEncoder passwords;
+    private final CcrSeedData ccrSeed;
+    private final boolean seedDemoData;
 
     public SeedData(
             AppGroupRepository groups,
             AppUserRepository users,
             MembershipRepository memberships,
             ApprovalRuleRepository rules,
-            PasswordEncoder passwords) {
+            CcrSeedData ccrSeed,
+            PasswordEncoder passwords,
+            @org.springframework.beans.factory.annotation.Value("${aftermarket.seed-demo-data:true}") boolean seedDemoData) {
         this.groups = groups;
         this.users = users;
         this.memberships = memberships;
         this.rules = rules;
+        this.ccrSeed = ccrSeed;
         this.passwords = passwords;
+        this.seedDemoData = seedDemoData;
     }
 
     @Override
@@ -53,6 +59,9 @@ public class SeedData implements ApplicationRunner {
             rule.setFinanceTeam("finance");
             rule.setCreatedBy("seed");
             rules.save(rule);
+        }
+        if (seedDemoData) {
+            ccrSeed.seedIfEmpty();
         }
     }
 

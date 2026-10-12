@@ -41,9 +41,8 @@ import {
 } from "@workspace/ui/components/tooltip"
 import {
   demoPartDetails,
-  vendorCatalog,
-  vendorPartsCatalog,
 } from "@/lib/ccr-data"
+import { useCcrCatalog } from "@/lib/use-ccr-catalog"
 import {
   buyingTypeOptions,
   partDetailsSchema,
@@ -91,6 +90,7 @@ function PartDetailsForm() {
   const [openSection, setOpenSection] = useState(true)
   const [selectAllDate, setSelectAllDate] = useState("")
   const [triedValidate, setTriedValidate] = useState(false)
+  const { vendors: vendorCatalog, parts: vendorPartsCatalog } = useCcrCatalog()
 
   const vendors = vendorCatalog.filter((v) => vendorCodes.includes(v.code))
   const effectiveVendor = activeVendor || vendorCodes[0] || ""
@@ -101,7 +101,7 @@ function PartDetailsForm() {
         (p) =>
           p.vendorCode === effectiveVendor && partNumbers.includes(p.partNumber)
       ),
-    [effectiveVendor, partNumbers]
+    [effectiveVendor, partNumbers, vendorPartsCatalog]
   )
 
   const form = useForm<PartDetailsInput, unknown, PartDetailsValues>({

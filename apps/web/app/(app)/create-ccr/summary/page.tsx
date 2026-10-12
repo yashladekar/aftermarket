@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useMemo } from "react"
+import { Suspense, useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Save, Send, Undo2, X } from "lucide-react"
@@ -17,7 +17,8 @@ import {
 import { CcrTopNav } from "@/components/aftermarket/ccr-top-nav"
 import { CcrWizardHeader } from "@/components/aftermarket/ccr-wizard-header"
 import { FieldError } from "@/components/aftermarket/wizard-fields"
-import { vendorCatalog } from "@/lib/ccr-data"
+import { useCcrCatalog } from "@/lib/use-ccr-catalog"
+import { useCcrApi, type CcrWizardPayload } from "@/lib/ccr-api"
 import {
   onBehalfReasons,
   summaryDefaults,
@@ -41,7 +42,8 @@ function SummaryForm() {
   const vendorCodes = vendorsParam ? vendorsParam.split(",").filter(Boolean) : []
   const partNumbers = partsParam ? partsParam.split(",").filter(Boolean) : []
 
-  const vendors = vendorCatalog.filter((v) => vendorCodes.includes(v.code))
+  const { createCcr, submitCcr } = useCcrApi()
+  const { vendors: vendorCatalog } = useCcrCatalog()
 
   const docs = useMemo(() => {
     if (!docsParam) return []
@@ -54,6 +56,8 @@ function SummaryForm() {
       })
   }, [docsParam])
 
+  const vendors = vendorCatalog.filter((v) => vendorCodes.includes(v.code))
+
   const quotes = docs.filter((d) => d.fileType === "Quote")
   const supporting = docs.filter((d) => d.fileType !== "Quote")
 
@@ -61,6 +65,92 @@ function SummaryForm() {
     resolver: zodResolver(summarySchema),
     defaultValues: summaryDefaults,
   })
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const buildPayload = (onBehalfReason: string): CcrWizardPayload => {
+    const vendors = vendorCodes.map((code) => {
+      const found = vendorCatalog.find((v) => v.code === code)
+      return { code, name: found?.name ?? code }
+    })
+    const partRows = rowsParam
+      ? rowsParam
+          .split("|")
+          .filter(Boolean)
+          .map((entry) => {
+            const [partNumber = "", startDate = "", newNetPrice = ""] =
+              entry.split(":")
+            return {
+              partNumber,
+              newNetPrice,
+              newPer: "",
+              newMoq: "",
+              newOrderMultiple: "",
+              newLeadTime: "",
+              buyingType: "General",
+              buyingTypeQty: "",
+              startDate,
+            }
+          })
+      : partNumbers.map((partNumber) => ({
+          partNumber,
+          newNetPrice: "",
+          newPer: "",
+          newMoq: "",
+          newOrderMultiple: "",
+          newLeadTime: "",
+          buyingType: "General",
+          buyingTypeQty: "",
+          startDate: "",
+        }))
+    const documents = docsParam
+      ? docsParam
+          .split("|")
+          .filter(Boolean)
+          .map((entry) => {
+            const [name = "", fileType = "Others", vendorCode = ""] =
+              entry.split(":")
+            const tagEntry = (tagsParam ?? "")
+              .split("|")
+              .map((tag) => tag.split("="))
+              .find(([key]) => key.endsWith(name))
+            return {
+              name,
+              fileType,
+              vendorCode: vendorCode || vendorCodes[0] || "",
+              partNumbers: tagEntry?.[1]
+                ? tagEntry[1].split(",").filter(Boolean)
+                : partNumbers,
+            }
+          })
+      : []
+    const stakeholders = stakeholdersParam
+      ? stakeholdersParam
+          .split("|")
+          .filter(Boolean)
+          .map((entry) => {
+            const [contactType = "External", name = "", email = "", codes = ""] =
+              entry.split(":")
+            return {
+              contactType,
+              name,
+              email,
+              vendorCodes: codes ? codes.split(",").filter(Boolean) : [],
+            }
+          })
+      : []
+    return {
+      kind,
+      vendors,
+      parts: partNumbers,
+      partRows,
+      justification,
+      documents,
+      stakeholders,
+      onBehalfReason,
+      priority: "Medium",
+    }
+  }
 
   const carryParams = () => {
     const search = new URLSearchParams({
@@ -81,15 +171,41 @@ function SummaryForm() {
 
   const submit = (asDraft: boolean) =>
     form.handleSubmit(
-      (values) => {
-        const search = new URLSearchParams({
-          kind,
-          vendors: vendorsParam,
-          parts: partsParam,
-          onBehalf: values.onBehalfReason,
-        })
-        if (asDraft || draft) search.set("draft", "1")
-        router.push(`/ccr-demo-submitted?${search.toString()}`)
+      async (values) => {
+        if (asDraft || draft) {
+          const search = new URLSearchParams({
+            kind,
+            vendors: vendorsParam,
+            parts: partsParam,
+            onBehalf: values.onBehalfReason,
+          })
+          search.set("draft", "1")
+          router.push(`/ccr-demo-submitted?${search.toString()}`)
+          return
+        }
+        setSubmitting(true)
+        setSubmitError(null)
+        try {
+          const created = await createCcr(buildPayload(values.onBehalfReason))
+          const submitted = await submitCcr(created.reference)
+          const search = new URLSearchParams({
+            kind,
+            vendors:
+              submitted.vendorCodes?.length > 0
+                ? submitted.vendorCodes.join(",")
+                : vendorsParam,
+            parts: partsParam,
+            onBehalf: values.onBehalfReason,
+            ref: submitted.reference,
+          })
+          router.push(`/ccr-demo-submitted?${search.toString()}`)
+        } catch (e) {
+          setSubmitError(
+            e instanceof Error ? e.message : "Failed to submit CCR"
+          )
+        } finally {
+          setSubmitting(false)
+        }
       },
       () => {
         if (asDraft) {
@@ -220,6 +336,14 @@ function SummaryForm() {
             />
           </div>
 
+          {submitError && (
+            <p
+              role="alert"
+              className="mb-2 rounded bg-red-50 px-3 py-2 text-xs font-medium text-red-700"
+            >
+              {submitError}
+            </p>
+          )}
           <div className="mt-6 flex items-center justify-between border-t border-neutral-200 pt-3">
             <div className="flex items-center gap-2">
               <Link
@@ -248,9 +372,10 @@ function SummaryForm() {
               <Button
                 type="submit"
                 size="sm"
+                disabled={submitting}
                 className="h-7 rounded-sm bg-emerald-800 px-2.5 text-[11px] font-bold text-white hover:bg-emerald-700"
               >
-                <Send className="size-3" /> SUBMIT
+                <Send className="size-3" /> {submitting ? "SUBMITTING…" : "SUBMIT"}
               </Button>
             </div>
           </div>

@@ -11,10 +11,12 @@ import org.springframework.stereotype.Service;
 
 import com.aftermarket.backend.domain.AppUser;
 import com.aftermarket.backend.domain.BaseEntity;
+import com.aftermarket.backend.domain.Ccr;
 import com.aftermarket.backend.domain.Claim;
 import com.aftermarket.backend.domain.MandateRequest;
 import com.aftermarket.backend.domain.TaskDecision;
 import com.aftermarket.backend.repo.AppUserRepository;
+import com.aftermarket.backend.repo.CcrRepository;
 import com.aftermarket.backend.repo.ClaimRepository;
 import com.aftermarket.backend.repo.MandateRequestRepository;
 import com.aftermarket.backend.repo.TaskDecisionRepository;
@@ -34,6 +36,7 @@ public class ApprovalViewService {
     private final WorkflowFacade workflow;
     private final ClaimRepository claims;
     private final MandateRequestRepository mandates;
+    private final CcrRepository ccrs;
     private final TaskDecisionRepository decisions;
     private final AppUserRepository users;
 
@@ -41,11 +44,13 @@ public class ApprovalViewService {
             WorkflowFacade workflow,
             ClaimRepository claims,
             MandateRequestRepository mandates,
+            CcrRepository ccrs,
             TaskDecisionRepository decisions,
             AppUserRepository users) {
         this.workflow = workflow;
         this.claims = claims;
         this.mandates = mandates;
+        this.ccrs = ccrs;
         this.decisions = decisions;
         this.users = users;
     }
@@ -68,6 +73,22 @@ public class ApprovalViewService {
                 tasks.put(task.taskId(), task);
             }
         }
+        for (MandateRequest mandate : mandates.findByCreatedByOrderByCreatedOnDesc(user.id())) {
+            if (mandate.getWorkflowInstanceId() == null) {
+                continue;
+            }
+            for (TaskResponse task : workflow.listTasks(null, null, mandate.getWorkflowInstanceId())) {
+                tasks.put(task.taskId(), task);
+            }
+        }
+        for (Ccr ccr : ccrs.findByCreatedByOrderByCreatedOnDesc(user.id())) {
+            if (ccr.getWorkflowInstanceId() == null) {
+                continue;
+            }
+            for (TaskResponse task : workflow.listTasks(null, null, ccr.getWorkflowInstanceId())) {
+                tasks.put(task.taskId(), task);
+            }
+        }
         List<PendingApprovalView> views = new ArrayList<>();
         for (TaskResponse task : tasks.values()) {
             views.add(toPendingView(user, task));
@@ -82,6 +103,9 @@ public class ApprovalViewService {
         }
         for (MandateRequest mandate : mandates.findByCreatedByOrderByCreatedOnDesc(user.id())) {
             raisedByMe.add(mandate.getNumber());
+        }
+        for (Ccr ccr : ccrs.findByCreatedByOrderByCreatedOnDesc(user.id())) {
+            raisedByMe.add(ccr.getReference());
         }
 
         Map<String, TaskDecision> merged = new LinkedHashMap<>();
@@ -105,8 +129,11 @@ public class ApprovalViewService {
         MandateRequest mandate = requestId == null || claim != null
                 ? null
                 : mandates.findByNumber(requestId).orElse(null);
+        Ccr ccr = requestId == null || claim != null || mandate != null
+                ? null
+                : ccrs.findByReference(requestId).orElse(null);
 
-        String requestType = mandate != null ? "Mandate" : "Claim";
+        String requestType = ccr != null ? "CCR" : mandate != null ? "Mandate" : "Claim";
         String description = null;
         String vendor = null;
         String value = null;
@@ -114,6 +141,12 @@ public class ApprovalViewService {
         if (mandate != null) {
             description = mandate.getCategory() == null ? mandate.getClaimIds() : mandate.getCategory();
             raisedById = mandate.getCreatedBy();
+        } else if (ccr != null) {
+            description = ccr.getJustification();
+            String names = ccr.getVendorNames();
+            vendor = names == null || names.isBlank() ? ccr.getVendorCodes() : names.split(",")[0].trim();
+            value = ccr.getPartNumbers();
+            raisedById = ccr.getCreatedBy();
         } else if (claim != null) {
             description = claim.getDescription();
             vendor = claim.getVendorName();
@@ -142,7 +175,12 @@ public class ApprovalViewService {
     }
 
     private ApprovalDecisionItem toDecisionItem(TaskDecision decision) {
-        String requestType = claims.findByLineId(decision.getRequestId()).isPresent() ? "Claim" : "Mandate";
+        String requestType = "Mandate";
+        if (claims.findByLineId(decision.getRequestId()).isPresent()) {
+            requestType = "Claim";
+        } else if (ccrs.findByReference(decision.getRequestId()).isPresent()) {
+            requestType = "CCR";
+        }
         return new ApprovalDecisionItem(
                 decision.getTaskId(),
                 decision.getRequestId(),

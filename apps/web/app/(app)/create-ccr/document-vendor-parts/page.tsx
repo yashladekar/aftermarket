@@ -22,7 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
-import { vendorPartsCatalog } from "@/lib/ccr-data"
+import { useCcrCatalog } from "@/lib/use-ccr-catalog"
 import {
   docPartTagsSchema,
   type DocPartTagsInput,
@@ -171,9 +171,10 @@ function DocumentVendorPartsForm() {
     () => (partsParam ? partsParam.split(",").filter(Boolean) : []),
     [partsParam]
   )
+  const { parts: vendorPartsCatalog } = useCcrCatalog()
   const parts = useMemo(
     () => vendorPartsCatalog.filter((p) => partNumbers.includes(p.partNumber)),
-    [partNumbers]
+    [partNumbers, vendorPartsCatalog]
   )
 
   const form = useForm<DocPartTagsInput, unknown, DocPartTagsValues>({

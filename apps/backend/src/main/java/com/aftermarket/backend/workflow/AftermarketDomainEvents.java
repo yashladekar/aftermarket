@@ -7,9 +7,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.aftermarket.backend.config.AftermarketProperties;
+import com.aftermarket.backend.domain.Ccr;
 import com.aftermarket.backend.domain.Claim;
 import com.aftermarket.backend.domain.MandateRequest;
 import com.aftermarket.backend.repo.ApprovalRuleRepository;
+import com.aftermarket.backend.repo.CcrRepository;
 import com.aftermarket.backend.repo.ClaimRepository;
 import com.aftermarket.backend.repo.MandateRequestRepository;
 import com.aftermarket.backend.service.ActivityService;
@@ -22,6 +24,7 @@ public class AftermarketDomainEvents {
 
     private final ClaimRepository claims;
     private final MandateRequestRepository mandates;
+    private final CcrRepository ccrs;
     private final ApprovalRuleRepository rules;
     private final NotificationService notifications;
     private final ActivityService activity;
@@ -30,12 +33,14 @@ public class AftermarketDomainEvents {
     public AftermarketDomainEvents(
             ClaimRepository claims,
             MandateRequestRepository mandates,
+            CcrRepository ccrs,
             ApprovalRuleRepository rules,
             NotificationService notifications,
             ActivityService activity,
             AftermarketProperties properties) {
         this.claims = claims;
         this.mandates = mandates;
+        this.ccrs = ccrs;
         this.rules = rules;
         this.notifications = notifications;
         this.activity = activity;
@@ -51,13 +56,15 @@ public class AftermarketDomainEvents {
         log.info("Domain event {} for {} {}", event, entityType, businessKey);
         if ("MANDATE".equals(entityType)) {
             handleMandateEvent(businessKey, event);
+        } else if ("CCR".equals(entityType)) {
+            handleCcrEvent(businessKey, event);
         } else {
             handleClaimEvent(businessKey, event);
         }
         activity.record(
                 "EVENT_" + event,
                 event,
-                "MANDATE".equals(entityType) ? "MandateRequest" : "Claim",
+                "MANDATE".equals(entityType) ? "MandateRequest" : "CCR".equals(entityType) ? "Ccr" : "Claim",
                 businessKey,
                 stringVar(execution, "submittedBy"),
                 "{}");
@@ -79,6 +86,10 @@ public class AftermarketDomainEvents {
         String businessKey = requireRequestId(execution);
         boolean approved = Boolean.TRUE.equals(execution.getVariable("approved"));
         String entityType = stringVar(execution, "entityType");
+        if ("CCR".equals(entityType)) {
+            finalizeCcr(execution);
+            return;
+        }
         if ("MANDATE".equals(entityType)) {
             mandates.findByNumber(businessKey).ifPresent(mandate -> {
                 mandate.setOverall(approved ? "Approved" : "Rejected");
@@ -132,12 +143,91 @@ public class AftermarketDomainEvents {
         finalizeRequest(execution);
     }
 
+    public void finalizeCcr(DelegateExecution execution) {
+        String businessKey = requireRequestId(execution);
+        boolean approved = Boolean.TRUE.equals(execution.getVariable("approved"));
+        ccrs.findByReference(businessKey).ifPresent(ccr -> {
+            ccr.setStatus(approved ? "Approved" : "Rejected");
+            ccr.setRecentUpdate(approved ? "CCR Approved" : "CCR Rejected");
+            ccr.setWorkflowState("ENDED");
+            ccr.setCurrentTaskKey(null);
+            ccrs.save(ccr);
+        });
+        activity.record(
+                approved ? "WORKFLOW_APPROVED" : "WORKFLOW_REJECTED",
+                approved ? "CCR approved" : "CCR rejected",
+                "Ccr",
+                businessKey,
+                stringVar(execution, "lastCompletedBy"),
+                "{}");
+        notifications.notify(
+                approved ? "REQUEST_APPROVED" : "REQUEST_REJECTED",
+                approved ? businessKey + " was approved" : businessKey + " was rejected",
+                approved ? "The CCR was approved." : "The CCR was rejected.",
+                "Ccr",
+                businessKey,
+                List.of(notBlank(stringVar(execution, "submittedBy"), "")),
+                List.of());
+    }
+
     public void confirmBooking(DelegateExecution execution) {
         String businessKey = requireRequestId(execution);
         String reference = "BK-" + businessKey + "-" + System.currentTimeMillis() % 100000;
         execution.setVariable("bookingReference", reference);
         log.info("Booking confirmed for {}: {}", businessKey, reference);
         activity.record("BOOKING_CONFIRMED", reference, "Claim", businessKey, null, "{}");
+    }
+
+    private void handleCcrEvent(String reference, String event) {
+        Ccr ccr = ccrs.findByReference(reference).orElse(null);
+        if (ccr == null) {
+            log.warn("CCR not found for event {}: {}", event, reference);
+            return;
+        }
+        switch (event) {
+            case "CCR_SUBMITTED" -> {
+                ccr.setStatus("Pending Approval");
+                ccr.setRecentUpdate("CCR Submitted");
+                ccr.setWorkflowState("RUNNING");
+                ccrs.save(ccr);
+            }
+            case "CCR_MANAGER_APPROVAL_REQUESTED" -> notifications.notify(
+                    "APPROVAL_REQUESTED",
+                    "Approval needed: " + reference,
+                    "CCR " + reference + " is waiting for manager approval.",
+                    "Ccr",
+                    reference,
+                    List.of(),
+                    List.of("supervisors"));
+            case "CCR_MANAGER_REMINDER" -> notifications.notify(
+                    "APPROVAL_REMINDER",
+                    "Reminder: " + reference + " is still pending",
+                    "CCR " + reference + " has been waiting for manager approval.",
+                    "Ccr",
+                    reference,
+                    List.of(),
+                    List.of("supervisors"));
+            case "CCR_MANAGER_ESCALATION" -> notifications.notify(
+                    "APPROVAL_ESCALATED",
+                    "Escalated: " + reference + " breached its SLA",
+                    "CCR " + reference + " was escalated because it was not approved in time.",
+                    "Ccr",
+                    reference,
+                    List.of(),
+                    List.of("supervisors", "finance"));
+            case "CCR_FINANCE_APPROVAL_REQUESTED" -> notifications.notify(
+                    "FINANCE_APPROVAL_REQUESTED",
+                    "Finance review needed: " + reference,
+                    "CCR " + reference + " passed manager approval and needs finance review.",
+                    "Ccr",
+                    reference,
+                    List.of(),
+                    List.of("finance"));
+            case "CCR_FINAL_OUTCOME" -> {
+            }
+            default -> {
+            }
+        }
     }
 
     private void handleClaimEvent(String lineId, String event) {

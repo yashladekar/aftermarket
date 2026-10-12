@@ -12,10 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.aftermarket.backend.domain.AppUser;
+import com.aftermarket.backend.domain.Ccr;
 import com.aftermarket.backend.domain.Claim;
 import com.aftermarket.backend.domain.MandateRequest;
 import com.aftermarket.backend.domain.TaskDecision;
 import com.aftermarket.backend.repo.AppUserRepository;
+import com.aftermarket.backend.repo.CcrRepository;
 import com.aftermarket.backend.repo.ClaimRepository;
 import com.aftermarket.backend.repo.MandateRequestRepository;
 import com.aftermarket.backend.repo.TaskDecisionRepository;
@@ -33,28 +35,34 @@ public class TaskAppService {
     private final WorkflowFacade workflow;
     private final ClaimRepository claims;
     private final MandateRequestRepository mandates;
+    private final CcrRepository ccrs;
     private final TaskDecisionRepository decisions;
     private final AppUserRepository users;
     private final ClaimService claimService;
     private final MandateService mandateService;
+    private final CcrService ccrService;
     private final ActivityService activity;
 
     public TaskAppService(
             WorkflowFacade workflow,
             ClaimRepository claims,
             MandateRequestRepository mandates,
+            CcrRepository ccrs,
             TaskDecisionRepository decisions,
             AppUserRepository users,
             ClaimService claimService,
             MandateService mandateService,
+            CcrService ccrService,
             ActivityService activity) {
         this.workflow = workflow;
         this.claims = claims;
         this.mandates = mandates;
+        this.ccrs = ccrs;
         this.decisions = decisions;
         this.users = users;
         this.claimService = claimService;
         this.mandateService = mandateService;
+        this.ccrService = ccrService;
         this.activity = activity;
     }
 
@@ -99,6 +107,10 @@ public class TaskAppService {
                 mandateService.applyInstance(mandate, instance);
                 mandates.save(mandate);
             });
+            ccrs.findByReference(businessKey).ifPresent(ccr -> {
+                ccrService.applyInstance(ccr, instance);
+                ccrs.save(ccr);
+            });
         }
         if (businessKey != null) {
             TaskDecision decision = new TaskDecision();
@@ -114,7 +126,7 @@ public class TaskAppService {
         activity.record(
                 approved ? "TASK_APPROVED" : "TASK_REJECTED",
                 task.name(),
-                "Claim".equals(entityType(task)) ? "Claim" : "MandateRequest",
+                entityType(task),
                 businessKey == null ? taskId : businessKey,
                 user.id(),
                 "{}");
@@ -185,7 +197,13 @@ public class TaskAppService {
         if (task.businessKey() == null) {
             return "Claim";
         }
-        return mandates.findByNumber(task.businessKey()).isPresent() ? "Mandate" : "Claim";
+        if (mandates.findByNumber(task.businessKey()).isPresent()) {
+            return "MandateRequest";
+        }
+        if (ccrs.findByReference(task.businessKey()).isPresent()) {
+            return "Ccr";
+        }
+        return "Claim";
     }
 
     public Claim lookupClaim(String businessKey) {

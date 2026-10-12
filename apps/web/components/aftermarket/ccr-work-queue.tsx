@@ -51,7 +51,6 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 import {
   ccrTypeOptions,
-  dummyCcrs,
   fmtCcrDate,
   type CcrPriority,
   type CcrRow,
@@ -62,6 +61,7 @@ import {
   type WorkQueueFilterInput,
   type WorkQueueFilters,
 } from "@/lib/ccr-schemas"
+import { useCcrApi } from "@/lib/ccr-api"
 import { FieldError } from "@/components/aftermarket/wizard-fields"
 
 const ROW_OPTIONS = [10, 25, 50] as const
@@ -271,6 +271,10 @@ export function CcrWorkQueue() {
     defaultValues: workQueueFilterDefaults,
   })
   const { reset: resetForm } = form
+  const { listCcrs } = useCcrApi()
+  const [backendRows, setBackendRows] = useState<CcrRow[]>([])
+  const [backendError, setBackendError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const rowsPerPage = ROW_OPTIONS.includes(
     query.rowsPerPage as (typeof ROW_OPTIONS)[number]
   )
@@ -342,7 +346,7 @@ export function CcrWorkQueue() {
       "Last 90 days": 90,
     }
 
-    return dummyCcrs
+    return backendRows
       .filter((r) => {
         if (
           vendorQ &&
@@ -371,6 +375,46 @@ export function CcrWorkQueue() {
       })
       .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
   }, [
+    backendRows,
+    query.vendorQuery,
+    query.partQuery,
+    query.codeRefQuery,
+    query.ccrType,
+    query.priority,
+    query.dateRequested,
+  ])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setBackendError(null)
+      try {
+        const params = new URLSearchParams()
+        if (query.vendorQuery) params.set("vendorQuery", query.vendorQuery)
+        if (query.partQuery) params.set("partQuery", query.partQuery)
+        if (query.codeRefQuery) params.set("codeRefQuery", query.codeRefQuery)
+        if (query.ccrType !== "Any") params.set("ccrType", query.ccrType)
+        if (query.priority !== "Any") params.set("priority", query.priority)
+        if (query.dateRequested !== "Any")
+          params.set("dateRequested", query.dateRequested)
+        const rows = await listCcrs(params)
+        if (!cancelled) setBackendRows(rows)
+      } catch (e) {
+        if (!cancelled)
+          setBackendError(
+            e instanceof Error ? e.message : "Failed to load CCRs"
+          )
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    listCcrs,
     query.vendorQuery,
     query.partQuery,
     query.codeRefQuery,
@@ -406,6 +450,11 @@ export function CcrWorkQueue() {
       <h2 className="py-1 text-center text-[13px] font-bold text-neutral-800">
         My Work Queue
       </h2>
+      {backendError && (
+        <p className="mb-2 rounded bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          {backendError}
+        </p>
+      )}
 
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
@@ -659,7 +708,16 @@ export function CcrWorkQueue() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visible.length === 0 ? (
+            {loading ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={visibleCount}
+                  className="py-8 text-center text-[12px] text-neutral-500"
+                >
+                  Loading CCRs…
+                </TableCell>
+              </TableRow>
+            ) : visible.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={visibleCount}

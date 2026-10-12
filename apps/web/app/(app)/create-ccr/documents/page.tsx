@@ -38,7 +38,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip"
-import { vendorCatalog } from "@/lib/ccr-data"
+import { useCcrCatalog } from "@/lib/use-ccr-catalog"
 import {
   permittedDocExtensions,
   supportDocFileTypes,
@@ -93,6 +93,7 @@ function DocumentsForm() {
   const [triedNext, setTriedNext] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const files = form.watch("files") ?? []
+  const { vendors: vendorCatalog } = useCcrCatalog()
 
   const vendors = vendorCatalog.filter((v) => vendorCodes.includes(v.code))
 

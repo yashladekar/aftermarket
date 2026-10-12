@@ -27,10 +27,9 @@ import {
 } from "@workspace/ui/components/tooltip"
 import {
   demoPartNumbers,
-  vendorCatalog,
-  vendorPartsCatalog,
   type VendorPart,
 } from "@/lib/ccr-data"
+import { useCcrCatalog } from "@/lib/use-ccr-catalog"
 import {
   selectPartsDefaults,
   selectPartsSchema,
@@ -72,6 +71,7 @@ function SelectPartsForm() {
   const [open, setOpen] = useState(false)
   const [triedNext, setTriedNext] = useState(false)
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { vendors: vendorCatalog, parts: vendorPartsCatalog } = useCcrCatalog()
 
   const vendors = vendorCatalog.filter((v) => vendorCodes.includes(v.code))
   const effectiveVendor = activeVendor || vendorCodes[0] || ""

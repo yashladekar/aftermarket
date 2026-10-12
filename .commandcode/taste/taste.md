@@ -18,3 +18,5 @@
 - Requires replacing any real/confidential data visible in provided screenshots with fictional dummy data in the implementation. Confidence: 0.95
 - When migrating off Appian, prefers rebuilding each screen faithfully as-is in Next.js with proper forms and zod schema validation rather than redesigning. Confidence: 0.85
 - Prefers systematic end-to-end browser audit of every built screen field-by-field to catch and fix gaps (including validation gates, filters, and negative paths) before moving on. Confidence: 0.8
+- When generating dummy/seed data, use existing hard-coded data as the reference template and make it large-volume and diverse covering a wide range of scenarios (all statuses, types, priorities, workflow stages) rather than minimal happy-path rows. Confidence: 0.85
+- Expects generated seed data to actually be inserted/persisted into the database, not just delivered as scripts or fixtures. Confidence: 0.8
