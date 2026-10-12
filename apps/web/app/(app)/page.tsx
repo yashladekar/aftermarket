@@ -1,26 +1,28 @@
 "use client"
 
-import { AftermarketHeader } from "@/components/aftermarket/aftermarket-header"
-import { AftermarketHero } from "@/components/aftermarket/aftermarket-hero"
-import { AftermarketFilters } from "@/components/aftermarket/aftermarket-filters"
+import { useState } from "react"
+import { CcrTopNav } from "@/components/aftermarket/ccr-top-nav"
+import { CcrHero } from "@/components/aftermarket/ccr-hero"
 import {
-  AftermarketClaimsTable,
-  useHomeFiltersState,
-} from "@/components/aftermarket/aftermarket-claims-table"
-import { useAftermarketStore } from "@/lib/aftermarket-store"
+  CcrSidebar,
+  type CcrSidebarKey,
+} from "@/components/aftermarket/ccr-sidebar"
+import { CcrWorkQueue } from "@/components/aftermarket/ccr-work-queue"
 
 export default function Page() {
-  const [filters, setFilters] = useHomeFiltersState()
-  const { claims } = useAftermarketStore()
+  const [sidebar, setSidebar] = useState<CcrSidebarKey>("queue")
+
   return (
     <div className="min-h-svh bg-neutral-100">
-      <AftermarketHeader active="home" />
-      <AftermarketHero />
+      <CcrTopNav active="home" />
+      <CcrHero />
 
-      <main className="space-y-0 px-6 py-3">
-        <AftermarketFilters filters={filters} onChange={setFilters} claims={claims} />
-        <AftermarketClaimsTable filters={filters} />
-      </main>
+      <div className="flex items-stretch gap-3 px-4 py-3">
+        <CcrSidebar active={sidebar} onSelect={setSidebar} />
+        <main className="min-w-0 flex-1">
+          <CcrWorkQueue />
+        </main>
+      </div>
     </div>
   )
 }
