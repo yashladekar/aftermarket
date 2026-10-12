@@ -33,6 +33,105 @@ export const ccrTypeOptions = [
   "Quality Hold",
 ] as const
 
+export type VendorOption = {
+  code: string
+  name: string
+}
+
+export const vendorCatalog: VendorOption[] = [
+  { code: "MRDFN", name: "MERIDIAN FASTENERS LTD" },
+  { code: "HLPOL", name: "HALSTEAD POLYMERS PLC" },
+  { code: "EVDLS", name: "EASTVALE DRIVELINE SYSTEMS GMBH" },
+  { code: "NWSSL", name: "NORTHWICK SEALING SOLUTIONS LTD" },
+  { code: "CFDCO", name: "CALDER FRICTION COMPONENTS LTD" },
+  { code: "ASHEL", name: "ASHBOURNE ELECTRICAL LTD" },
+  { code: "KSTAL", name: "KESTREL ALLOY WHEELS LTD" },
+  { code: "DNMGS", name: "DUNMORE GLASS SYSTEMS LTD" },
+  { code: "BRKWD", name: "BROOKWOOD CASTINGS LTD" },
+  { code: "THRNC", name: "THORNCROFT HYDRAULICS LTD" },
+  { code: "WLMBY", name: "WILMBURY INTERIORS GMBH" },
+  { code: "FENGR", name: "FENWICK GEARS & TRANSMISSION LTD" },
+]
+
+export const preferredVendorCodes = ["MRDFN", "HLPOL", "EVDLS", "NWSSL", "CFDCO"]
+
+export const demoVendorCodes = ["MRDFN"]
+
+export const demoPartNumbers = ["5201140783", "5201140784"]
+
+export const ccrWizardSteps = [
+  "Select Vendors",
+  "Select Parts",
+  "Enter Part Change Details",
+  "Upload Supporting Documents",
+  "Select Documents Vendor Parts",
+  "Add Additional Stakeholders",
+  "Summary",
+] as const
+
+export type VendorPart = {
+  vendorCode: string
+  partNumber: string
+  description: string
+  materialNumber: string
+  wers: string
+  manufacturerPartNumber: string
+  incoterms: string
+  netPrice: string
+  per: string
+  moq: string
+  currentOrderMultiple: string
+  leadTime: string
+}
+
+function vp(
+  vendorCode: string,
+  partNumber: string,
+  description: string,
+  manufacturerPartNumber: string,
+  netPrice: string,
+  leadTime: string
+): VendorPart {
+  return {
+    vendorCode,
+    partNumber,
+    description,
+    materialNumber: partNumber,
+    wers: "W7A",
+    manufacturerPartNumber,
+    incoterms: "DAP",
+    netPrice,
+    per: "1",
+    moq: "50",
+    currentOrderMultiple: "10",
+    leadTime,
+  }
+}
+
+export const vendorPartsCatalog: VendorPart[] = [
+  vp("MRDFN", "5201140783", "Hex flange bolt M8 x 30", "MF-52140", "0.8450", "14 days"),
+  vp("MRDFN", "5201140784", "Hex flange bolt M8 x 35", "MF-52141", "0.9120", "14 days"),
+  vp("MRDFN", "5201140811", "Wheel stud M14 x 1.5", "MF-52207", "1.2740", "21 days"),
+  vp("HLPOL", "6108823451", "Coolant hose assembly", "HP-61021", "8.4600", "21 days"),
+  vp("HLPOL", "6108823519", "Air intake duct", "HP-61088", "12.1300", "28 days"),
+  vp("HLPOL", "6108823520", "Air intake duct clip kit", "HP-61089", "2.5400", "28 days"),
+  vp("EVDLS", "7305561290", "Propshaft centre bearing", "EV-73011", "24.9000", "35 days"),
+  vp("EVDLS", "7305561402", "Rear drive coupling", "EV-73019", "41.7500", "35 days"),
+  vp("NWSSL", "4402091765", "Crankshaft front seal", "NW-44051", "3.2800", "14 days"),
+  vp("NWSSL", "4402091766", "Crankshaft rear seal", "NW-44052", "3.6100", "14 days"),
+  vp("NWSSL", "4402091889", "Camshaft seal kit", "NW-44077", "5.9400", "21 days"),
+  vp("CFDCO", "8804319927", "Front brake pad set", "CF-88031", "18.2500", "21 days"),
+  vp("CFDCO", "8804320054", "Rear brake pad set", "CF-88042", "16.9800", "21 days"),
+  vp("ASHEL", "3107754208", "Wiring harness branch", "AS-31055", "9.7200", "28 days"),
+  vp("KSTAL", "1509936274", "Alloy wheel 20 inch", "KS-15011", "132.4000", "42 days"),
+  vp("KSTAL", "1509936330", "Alloy wheel 21 inch", "KS-15018", "148.9000", "42 days"),
+  vp("DNMGS", "9901625380", "Windscreen glass assembly", "DN-99012", "86.3000", "35 days"),
+  vp("BRKWD", "7703412055", "Suspension knuckle casting", "BW-77034", "54.6000", "42 days"),
+  vp("THRNC", "6605187741", "Hydraulic pump unit", "TH-66051", "97.8500", "35 days"),
+  vp("WLMBY", "2804469137", "Door trim panel insert", "WL-28044", "11.3700", "28 days"),
+  vp("FENGR", "1902275062", "Transfer box gear set", "FE-19022", "63.2000", "42 days"),
+]
+
 export const dummyCcrs: CcrRow[] = [
   {
     reference: "CCR-MRDFN-1042",

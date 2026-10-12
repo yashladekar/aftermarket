@@ -5,14 +5,14 @@ import { Download, Plus, RefreshCw } from "lucide-react"
 import { useAftermarketSession } from "@/components/aftermarket/session-provider"
 
 const primaryActions = [
-  { label: "RAISE NEW COMMERCIAL CHANGE REQUEST", icon: Plus, href: "/create-claim" },
+  { label: "RAISE NEW COMMERCIAL CHANGE REQUEST", icon: Plus, href: "/create-ccr" },
   { label: "CREATE SUPPLIER SPEND FORECAST", icon: Plus, href: "/mandate-request" },
   { label: "REASSIGN CCR APPROVALS", icon: RefreshCw, href: "/tasks" },
 ]
 
 const secondaryActions = [
   { label: "DOWNLOAD CREATE CCR TEMPLATE", icon: Download, href: "#" },
-  { label: "CREATE CCR FROM TEMPLATE", icon: Plus, href: "/create-claim" },
+  { label: "CREATE CCR FROM TEMPLATE", icon: Plus, href: "/create-ccr" },
 ]
 
 export function CcrHero() {
