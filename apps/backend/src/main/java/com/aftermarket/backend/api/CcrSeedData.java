@@ -85,11 +85,25 @@ public class CcrSeedData {
     }
 
     public void seedIfEmpty() {
+        ensureVersionTable();
         if (isCurrentVersion()) {
             log.info("Skipping CCR seed: v{} seed already present", SEED_VERSION);
             return;
         }
-        clearPreviousSeed();
+        if (!claimSeedSlot()) {
+            log.info("Skipping CCR seed: another instance already seeded or is seeding v{}", SEED_VERSION);
+            return;
+        }
+        try {
+            clearPreviousSeed();
+            seedAll();
+        } catch (RuntimeException e) {
+            releaseSeedSlot();
+            throw e;
+        }
+    }
+
+    private void seedAll() {
         Random rng = new Random(7);
         String employeeId = userId("employee1@aftermarket.dev");
         String managerId = userId("manager1@aftermarket.dev");
@@ -137,14 +151,11 @@ public class CcrSeedData {
 
         runWorkflows(created, employeeId, managerId, financeId);
         backdate(created, rng);
-        jdbc.update("INSERT INTO mci_ccr_seed_version (version) VALUES (?)", SEED_VERSION);
         log.info("CCR seed complete: {} rows (v{})", created.size(), SEED_VERSION);
     }
 
     private boolean isCurrentVersion() {
         try {
-            jdbc.execute(
-                    "CREATE TABLE IF NOT EXISTS mci_ccr_seed_version (version INT PRIMARY KEY, seeded_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             Integer version = jdbc.queryForObject("SELECT MAX(version) FROM mci_ccr_seed_version", Integer.class);
             if (version != null && version >= SEED_VERSION) {
                 return true;
@@ -153,6 +164,27 @@ public class CcrSeedData {
             log.warn("Seed version check failed, reseeding: {}", e.getMessage());
         }
         return ccrs.count() >= TOTAL && !hasVersionTable();
+    }
+
+    private void ensureVersionTable() {
+        jdbc.execute(
+                "CREATE TABLE IF NOT EXISTS mci_ccr_seed_version (version INT PRIMARY KEY, seeded_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+    }
+
+    private boolean claimSeedSlot() {
+        try {
+            return jdbc.update("INSERT INTO mci_ccr_seed_version (version) VALUES (?)", SEED_VERSION) == 1;
+        } catch (Exception e) {
+            return isCurrentVersion();
+        }
+    }
+
+    private void releaseSeedSlot() {
+        try {
+            jdbc.update("DELETE FROM mci_ccr_seed_version WHERE version = ?", SEED_VERSION);
+        } catch (Exception e) {
+            log.warn("Seed slot release skipped: {}", e.getMessage());
+        }
     }
 
     private boolean hasVersionTable() {

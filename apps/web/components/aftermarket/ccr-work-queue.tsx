@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
 import {
   parseAsInteger,
@@ -265,6 +266,7 @@ function PriorityCell({ priority }: { priority: CcrPriority }) {
 }
 
 export function CcrWorkQueue() {
+  const router = useRouter()
   const [query, setQuery] = useQueryStates(workQueueQueryParsers)
   const form = useForm<WorkQueueFilterInput, unknown, WorkQueueFilters>({
     resolver: zodResolver(workQueueFilterSchema),
@@ -828,9 +830,27 @@ export function CcrWorkQueue() {
                         <EllipsisVertical className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Open CCR</DropdownMenuItem>
-                        <DropdownMenuItem>View parts</DropdownMenuItem>
-                        <DropdownMenuItem>Reassign approval</DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            router.push(
+                              `/ccr-demo-submitted?ref=${encodeURIComponent(row.reference)}`
+                            )
+                          }
+                        >
+                          Open CCR
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            router.push(
+                              `/ccr-demo-submitted?ref=${encodeURIComponent(row.reference)}`
+                            )
+                          }
+                        >
+                          View parts
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => router.push("/tasks")}>
+                          Reassign approval
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -178,8 +179,16 @@ public class CcrService {
         if (payload == null) {
             return;
         }
+        Map<String, Object> merged = new LinkedHashMap<>();
         try {
-            ccr.setPayload(mapper.writeValueAsString(payload));
+            Map<?, ?> existing =
+                    mapper.readValue(ccr.getPayload() == null ? "{}" : ccr.getPayload(), Map.class);
+            existing.forEach((key, value) -> merged.put(String.valueOf(key), value));
+        } catch (Exception ignored) {
+        }
+        merged.putAll(payload);
+        try {
+            ccr.setPayload(mapper.writeValueAsString(merged));
         } catch (Exception e) {
             ccr.setPayload("{}");
         }
