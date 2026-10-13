@@ -2,9 +2,6 @@ package com.aftermarket.backend.api;
 
 import com.aftermarket.backend.domain.Claim;
 import com.aftermarket.backend.service.ClaimService;
-import com.aftermarket.backend.workflow.WorkflowFacade;
-import com.aftermarket.backend.workflow.dto.HistoryEntry;
-import com.aftermarket.backend.workflow.dto.ProcessInstanceResponse;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.core.Authentication;
@@ -22,11 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class ClaimController {
 
     private final ClaimService claims;
-    private final WorkflowFacade workflow;
 
-    public ClaimController(ClaimService claims, WorkflowFacade workflow) {
+    public ClaimController(ClaimService claims) {
         this.claims = claims;
-        this.workflow = workflow;
     }
 
     @GetMapping
@@ -50,28 +45,5 @@ public class ClaimController {
             @PathVariable String lineId,
             @RequestBody(required = false) Map<String, Object> payload) {
         return claims.update(authentication.getName(), lineId, payload == null ? Map.of() : payload);
-    }
-
-    @PostMapping("/{lineId}/submit")
-    public Claim submit(Authentication authentication, @PathVariable String lineId) {
-        return claims.submit(authentication.getName(), lineId);
-    }
-
-    @GetMapping("/{lineId}/history")
-    public List<HistoryEntry> history(@PathVariable String lineId) {
-        Claim claim = claims.get(lineId);
-        if (claim.getWorkflowInstanceId() == null) {
-            return List.of();
-        }
-        return workflow.getHistory(claim.getWorkflowInstanceId());
-    }
-
-    @GetMapping("/{lineId}/instance")
-    public ProcessInstanceResponse instance(@PathVariable String lineId) {
-        Claim claim = claims.get(lineId);
-        if (claim.getWorkflowInstanceId() == null) {
-            throw new IllegalArgumentException("Claim has no workflow instance: " + lineId);
-        }
-        return workflow.getInstance(claim.getWorkflowInstanceId());
     }
 }

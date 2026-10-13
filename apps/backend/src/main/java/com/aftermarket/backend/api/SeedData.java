@@ -38,12 +38,16 @@ public class SeedData implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        ensureGroup("employees", "Employees", "claim:create,claim:read:own,task:complete:employee");
-        ensureGroup("supervisors", "Supervisors", "claim:read:all,task:approve:manager,approval:review");
-        ensureGroup("finance", "Finance", "claim:read:all,task:approve:finance,report:read,approval:decide");
+        // Core groups – "supervisors" is the Aftermarket approval group referenced in BPMN candidateGroups
+        ensureGroup("employees", "Employees", "claim:create,claim:read:own,task:complete:employee,ccr:submit");
+        ensureGroup("supervisors", "Aftermarket Approvers", "claim:read:all,task:approve:aftermarket,approval:review,ccr:approve:aftermarket");
+        ensureGroup("finance", "Finance Approvers", "claim:read:all,task:approve:finance,report:read,approval:decide,ccr:approve:finance");
+
+        // Seed demo users
+        // manager1 is the Aftermarket approver (supervisors group)
         ensureUser("employee1@aftermarket.dev", "Erin Employee", "ZZ0X", List.of("employees"));
         ensureUser("manager1@aftermarket.dev", "Morgan Manager", "ZZ1X", List.of("employees", "supervisors"));
-        ensureUser("finance1@aftermarket.dev", "Frankie Finance", "ZZ1X", List.of("finance"));
+        ensureUser("finance1@aftermarket.dev", "Frankie Finance", "ZZ2X", List.of("finance"));
         if (rules.count() == 0) {
             ApprovalRule rule = new ApprovalRule();
             rule.setName("Default finance threshold");

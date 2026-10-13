@@ -1,14 +1,10 @@
 package com.aftermarket.backend.service;
 
-import com.aftermarket.backend.config.AftermarketProperties;
 import com.aftermarket.backend.domain.Claim;
 import com.aftermarket.backend.repo.ClaimRepository;
-import com.aftermarket.backend.workflow.WorkflowFacade;
-import com.aftermarket.backend.workflow.dto.ProcessInstanceResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -20,21 +16,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class ClaimService {
 
     private final ClaimRepository claims;
-    private final WorkflowFacade workflow;
     private final ActivityService activity;
-    private final AftermarketProperties properties;
     private final ObjectMapper mapper;
 
     public ClaimService(
             ClaimRepository claims,
-            WorkflowFacade workflow,
             ActivityService activity,
-            AftermarketProperties properties,
             ObjectMapper mapper) {
         this.claims = claims;
-        this.workflow = workflow;
         this.activity = activity;
-        this.properties = properties;
         this.mapper = mapper;
     }
 
@@ -72,39 +62,7 @@ public class ClaimService {
         return claims.save(claim);
     }
 
-    @Transactional
-    public Claim submit(String userId, String lineId) {
-        Claim claim = get(lineId);
-        if (claim.getWorkflowInstanceId() != null) {
-            return claim;
-        }
-        claim.setStatus("Forecast");
-        claim.setWorkflowState("RUNNING");
-        claim.setUpdatedBy(userId);
-        claims.save(claim);
-
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("requestId", lineId);
-        variables.put("businessKey", lineId);
-        variables.put("entityType", "CLAIM");
-        variables.put("submittedBy", userId);
-        variables.put("employeeGroup", "employees");
-        variables.put("supervisorGroup", "supervisors");
-        variables.put("financeGroup", "finance");
-        variables.put("totalAmount", parseAmount(claim.getReportingValue()));
-        variables.put("hasDocuments", hasDocuments(claim));
-        variables.put("managerReminderDuration", properties.managerReminderDuration());
-        variables.put("managerEscalationDuration", properties.managerEscalationDuration());
-
-        ProcessInstanceResponse instance = workflow.start(
-                new com.aftermarket.backend.workflow.dto.StartProcessRequest("claimLifecycle", lineId, variables));
-        applyInstance(claim, instance);
-        claims.save(claim);
-        activity.record("WORKFLOW_STARTED", "claimLifecycle", "Claim", lineId, userId, "{}");
-        return claim;
-    }
-
-    public void applyInstance(Claim claim, ProcessInstanceResponse instance) {
+    public void applyInstance(Claim claim, com.aftermarket.backend.workflow.dto.ProcessInstanceResponse instance) {
         claim.setWorkflowInstanceId(instance.processInstanceId());
         if (instance.ended()) {
             claim.setWorkflowState("ENDED");
@@ -119,13 +77,13 @@ public class ClaimService {
         }
     }
 
-    public static String deriveStatus(ProcessInstanceResponse instance) {
+    public static String deriveStatus(com.aftermarket.backend.workflow.dto.ProcessInstanceResponse instance) {
         if (!instance.ended()) {
             if (instance.activeTaskKeys().contains("financeApproval")) {
                 return "Awaiting Finance";
             }
-            if (instance.activeTaskKeys().contains("managerApproval")) {
-                return "Awaiting Manager";
+            if (instance.activeTaskKeys().contains("aftermarketApproval")) {
+                return "Awaiting Aftermarket";
             }
             return "Forecast";
         }
@@ -222,17 +180,6 @@ public class ClaimService {
             return Double.parseDouble(value.replace(",", "").replace("(", "-").replace(")", ""));
         } catch (NumberFormatException e) {
             return 0;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private boolean hasDocuments(Claim claim) {
-        try {
-            Map<String, Object> payload = mapper.readValue(claim.getPayload(), Map.class);
-            Object docs = payload.get("docs");
-            return docs instanceof List<?> list && !list.isEmpty();
-        } catch (Exception e) {
-            return false;
         }
     }
 

@@ -3,6 +3,7 @@
   "ui": "tui",
   "globalEnv": [
     "NODE_ENV",
+    "JAVA_HOME",
     "BACKEND_URL",
     "NEXT_PUBLIC_API_URL",
     "AUTH_SECRET",
@@ -11,9 +12,6 @@
     "SPRING_DATASOURCE_PASSWORD",
     "AFTERMARKET_JWT_SECRET",
     "AFTERMARKET_JWT_EXPIRY",
-    "FINANCE_THRESHOLD",
-    "MANAGER_REMINDER_DURATION",
-    "MANAGER_ESCALATION_DURATION",
     "STORAGE_DIR"
   ],
   "tasks": {

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath"
+             targetNamespace="http://aftermarket.com/workflow">
+
+    <!--
+      CCR (Commercial Change Request) approval workflow.
+      Sequential: Aftermarket approval (supervisors group) THEN Finance approval (finance group).
+      businessKey = CCR request number / mandate number.
+      Process variables:
+        requestId       - business key of the CCR / mandate
+        submittedBy     - user ID who submitted
+        aftermarketGroup - candidate group for aftermarket task (default: supervisors)
+        financeGroup    - candidate group for finance task (default: finance)
+        approved        - boolean set by each task completer
+        decidedBy       - user ID who decided
+    -->
+    <process id="ccrApproval" name="CCR Approval" isExecutable="true">
+
+        <startEvent id="start" name="CCR submitted"/>
+
+        <serviceTask id="recordSubmission"
+                     name="Record submission"
+                     flowable:expression="#{ccrDomainEvents.onSubmitted(execution)}"/>
+
+        <userTask id="aftermarketApproval"
+                  name="Aftermarket approval"
+                  flowable:candidateGroups="${aftermarketGroup}"
+                  flowable:formKey="aftermarketApproval"/>
+
+        <exclusiveGateway id="aftermarketDecision" name="Aftermarket decision" default="flow-aftermarket-rejected"/>
+
+        <userTask id="financeApproval"
+                  name="Finance approval"
+                  flowable:candidateGroups="${financeGroup}"
+                  flowable:formKey="financeApproval"/>
+
+        <exclusiveGateway id="financeDecision" name="Finance decision" default="flow-finance-rejected"/>
+
+        <serviceTask id="finalizeApproved"
+                     name="Finalize approved"
+                     flowable:expression="#{ccrDomainEvents.onApproved(execution)}"/>
+
+        <serviceTask id="finalizeRejected"
+                     name="Finalize rejected"
+                     flowable:expression="#{ccrDomainEvents.onRejected(execution)}"/>
+
+        <endEvent id="completedEnd" name="Approved"/>
+        <endEvent id="rejectedEnd" name="Rejected"/>
+
+        <!-- Sequence flows -->
+        <sequenceFlow id="flow-start" sourceRef="start" targetRef="recordSubmission"/>
+        <sequenceFlow id="flow-recorded" sourceRef="recordSubmission" targetRef="aftermarketApproval"/>
+        <sequenceFlow id="flow-aftermarket-decided" sourceRef="aftermarketApproval" targetRef="aftermarketDecision"/>
+        <sequenceFlow id="flow-aftermarket-approved" sourceRef="aftermarketDecision" targetRef="financeApproval">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${approved == true}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow-aftermarket-rejected" sourceRef="aftermarketDecision" targetRef="finalizeRejected"/>
+        <sequenceFlow id="flow-finance-decided" sourceRef="financeApproval" targetRef="financeDecision"/>
+        <sequenceFlow id="flow-finance-approved" sourceRef="financeDecision" targetRef="finalizeApproved">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${approved == true}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow-finance-rejected" sourceRef="financeDecision" targetRef="finalizeRejected"/>
+        <sequenceFlow id="flow-approved-end" sourceRef="finalizeApproved" targetRef="completedEnd"/>
+        <sequenceFlow id="flow-rejected-end" sourceRef="finalizeRejected" targetRef="rejectedEnd"/>
+    </process>
+</definitions>
+

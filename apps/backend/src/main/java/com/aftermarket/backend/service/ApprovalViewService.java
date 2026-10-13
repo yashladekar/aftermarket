@@ -106,13 +106,16 @@ public class ApprovalViewService {
                 ? null
                 : mandates.findByNumber(requestId).orElse(null);
 
-        String requestType = mandate != null ? "Mandate" : "Claim";
+        String requestType = mandate != null
+                ? ("CCR".equals(mandate.getRequestType()) ? "CCR" : "Mandate")
+                : "Claim";
         String description = null;
         String vendor = null;
         String value = null;
         String raisedById = null;
         if (mandate != null) {
             description = mandate.getCategory() == null ? mandate.getClaimIds() : mandate.getCategory();
+            vendor = mandate.getVendorName();
             raisedById = mandate.getCreatedBy();
         } else if (claim != null) {
             description = claim.getDescription();
@@ -142,7 +145,14 @@ public class ApprovalViewService {
     }
 
     private ApprovalDecisionItem toDecisionItem(TaskDecision decision) {
-        String requestType = claims.findByLineId(decision.getRequestId()).isPresent() ? "Claim" : "Mandate";
+        String requestType;
+        if (claims.findByLineId(decision.getRequestId()).isPresent()) {
+            requestType = "Claim";
+        } else {
+            requestType = mandates.findByNumber(decision.getRequestId())
+                    .map(m -> "CCR".equals(m.getRequestType()) ? "CCR" : "Mandate")
+                    .orElse("Mandate");
+        }
         return new ApprovalDecisionItem(
                 decision.getTaskId(),
                 decision.getRequestId(),

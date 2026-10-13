@@ -97,6 +97,13 @@ public class TaskAppService {
             });
             mandates.findByNumber(businessKey).ifPresent(mandate -> {
                 mandateService.applyInstance(mandate, instance);
+                // For CCR mandates, update the overall status to reflect current task
+                if ("CCR".equals(mandate.getRequestType()) && !instance.ended()) {
+                    if (instance.activeTaskKeys().contains("financeApproval")) {
+                        mandate.setOverall("Pending Finance Approval");
+                        mandate.setClearing("Approved");
+                    }
+                }
                 mandates.save(mandate);
             });
         }
@@ -185,7 +192,9 @@ public class TaskAppService {
         if (task.businessKey() == null) {
             return "Claim";
         }
-        return mandates.findByNumber(task.businessKey()).isPresent() ? "Mandate" : "Claim";
+        return mandates.findByNumber(task.businessKey())
+                .map(m -> "CCR".equals(m.getRequestType()) ? "CCR" : "Mandate")
+                .orElse("Claim");
     }
 
     public Claim lookupClaim(String businessKey) {

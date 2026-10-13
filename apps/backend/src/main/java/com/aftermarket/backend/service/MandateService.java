@@ -1,13 +1,9 @@
 package com.aftermarket.backend.service;
 
-import com.aftermarket.backend.config.AftermarketProperties;
 import com.aftermarket.backend.domain.MandateRequest;
 import com.aftermarket.backend.repo.MandateRequestRepository;
-import com.aftermarket.backend.workflow.WorkflowFacade;
-import com.aftermarket.backend.workflow.dto.ProcessInstanceResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -19,21 +15,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class MandateService {
 
     private final MandateRequestRepository mandates;
-    private final WorkflowFacade workflow;
     private final ActivityService activity;
-    private final AftermarketProperties properties;
     private final ObjectMapper mapper;
 
     public MandateService(
             MandateRequestRepository mandates,
-            WorkflowFacade workflow,
             ActivityService activity,
-            AftermarketProperties properties,
             ObjectMapper mapper) {
         this.mandates = mandates;
-        this.workflow = workflow;
         this.activity = activity;
-        this.properties = properties;
         this.mapper = mapper;
     }
 
@@ -58,51 +48,8 @@ public class MandateService {
         return saved;
     }
 
-    @Transactional
-    @SuppressWarnings("unchecked")
-    public MandateRequest submit(String userId, String number) {
-        MandateRequest mandate = get(number);
-        if (mandate.getWorkflowInstanceId() != null) {
-            return mandate;
-        }
-        mandate.setOverall("Awaiting DOA Approval Mandate Request");
-        mandate.setDoa("Submitted");
-        mandate.setWorkflowState("RUNNING");
-        mandate.setUpdatedBy(userId);
-        mandates.save(mandate);
-
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("requestId", number);
-        variables.put("businessKey", number);
-        variables.put("entityType", "MANDATE");
-        variables.put("submittedBy", userId);
-        variables.put("employeeGroup", "employees");
-        variables.put("supervisorGroup", "supervisors");
-        variables.put("financeGroup", "finance");
-        variables.put("managerReminderDuration", properties.managerReminderDuration());
-        variables.put("managerEscalationDuration", properties.managerEscalationDuration());
-        try {
-            Map<String, Object> payload = mapper.readValue(mandate.getPayload(), Map.class);
-            Object claimIds = payload.get("claimIds");
-            if (claimIds instanceof List<?> list) {
-                variables.put("claimIds", list.stream().map(String::valueOf).toList());
-            }
-        } catch (Exception ignored) {
-        }
-
-        ProcessInstanceResponse instance = workflow.start(
-                new com.aftermarket.backend.workflow.dto.StartProcessRequest("mandateApproval", number, variables));
-        mandate.setWorkflowInstanceId(instance.processInstanceId());
-        mandate.setWorkflowState("RUNNING");
-        if (!instance.activeTaskKeys().isEmpty()) {
-            mandate.setCurrentTaskKey(instance.activeTaskKeys().get(0));
-        }
-        mandates.save(mandate);
-        activity.record("WORKFLOW_STARTED", "mandateApproval", "MandateRequest", number, userId, "{}");
-        return mandate;
-    }
-
-    public void applyInstance(MandateRequest mandate, ProcessInstanceResponse instance) {
+    public void applyInstance(MandateRequest mandate,
+            com.aftermarket.backend.workflow.dto.ProcessInstanceResponse instance) {
         mandate.setWorkflowInstanceId(instance.processInstanceId());
         if (instance.ended()) {
             mandate.setWorkflowState("ENDED");

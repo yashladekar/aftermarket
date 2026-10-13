@@ -41,11 +41,6 @@ public class MandateController {
         return mandates.get(number);
     }
 
-    @PostMapping("/{number}/submit")
-    public MandateRequest submit(Authentication authentication, @PathVariable String number) {
-        return mandates.submit(authentication.getName(), number);
-    }
-
     @GetMapping("/approvals/view")
     public List<Map<String, Object>> approvals() {
         return mandates.list().stream().map(mandate -> {

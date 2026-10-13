@@ -5,9 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "aftermarket")
 public record AftermarketProperties(
         Jwt jwt,
-        double financeThreshold,
-        String managerReminderDuration,
-        String managerEscalationDuration,
         String storageDir) {
 
     public record Jwt(String secret, long expirySeconds) {
