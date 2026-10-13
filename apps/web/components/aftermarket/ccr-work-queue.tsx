@@ -574,7 +574,7 @@ export function CcrWorkQueue() {
                 {columnDefs.map((c) => (
                   <DropdownMenuItem
                     key={c.key}
-                    onSelect={(e) => e.preventDefault()}
+                    closeOnClick={false}
                     className="flex items-center gap-2"
                   >
                     <Checkbox
@@ -831,7 +831,7 @@ export function CcrWorkQueue() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onSelect={() =>
+                          onClick={() =>
                             router.push(
                               `/ccr-demo-submitted?ref=${encodeURIComponent(row.reference)}`
                             )
@@ -840,7 +840,7 @@ export function CcrWorkQueue() {
                           Open CCR
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() =>
+                          onClick={() =>
                             router.push(
                               `/ccr-demo-submitted?ref=${encodeURIComponent(row.reference)}`
                             )
@@ -848,7 +848,7 @@ export function CcrWorkQueue() {
                         >
                           View parts
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => router.push("/tasks")}>
+                        <DropdownMenuItem onClick={() => router.push("/tasks")}>
                           Reassign approval
                         </DropdownMenuItem>
                       </DropdownMenuContent>
