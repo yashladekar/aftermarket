@@ -23,9 +23,9 @@ import {
   ccrWizardSteps,
   demoVendorCodes,
   preferredVendorCodes,
-  vendorCatalog,
   type VendorOption,
 } from "@/lib/ccr-data"
+import { useCcrCatalog } from "@/lib/use-ccr-catalog"
 import {
   selectVendorsDefaults,
   selectVendorsSchema,
@@ -67,6 +67,7 @@ function SelectVendorsForm() {
   const selected = new Set(selectedCodes)
   const [open, setOpen] = useState(false)
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { vendors: vendorCatalog } = useCcrCatalog()
 
   const query = vendorSearch.trim()
   const matches = filterVendors(vendorCatalog, vendorSearch, searchAll)

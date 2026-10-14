@@ -15,7 +15,7 @@
     <artifactId>aftermarket-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>aftermarket-backend</name>
-    <description>aftermarket single Spring Boot backend with embedded Flowable for the claim/mandate workflow</description>
+    <description>aftermarket single Spring Boot backend with embedded Flowable for the CCR approval workflow</description>
 
     <properties>
         <java.version>25</java.version>

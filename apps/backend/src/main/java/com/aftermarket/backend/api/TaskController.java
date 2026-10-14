@@ -2,7 +2,6 @@ package com.aftermarket.backend.api;
 
 import com.aftermarket.backend.service.IdentityService;
 import com.aftermarket.backend.service.TaskAppService;
-import com.aftermarket.backend.workflow.dto.ClaimTaskRequest;
 import com.aftermarket.backend.workflow.dto.ProcessInstanceResponse;
 import com.aftermarket.backend.workflow.dto.TaskResponse;
 import java.util.List;
@@ -49,8 +48,7 @@ public class TaskController {
     @PostMapping("/{taskId}/claim")
     public TaskResponse claim(
             Authentication authentication,
-            @PathVariable String taskId,
-            @RequestBody(required = false) ClaimTaskRequest request) {
+            @PathVariable String taskId) {
         IdentityService.SessionUser user = identity.sessionFor(authentication.getName());
         return tasks.claim(user, taskId);
     }

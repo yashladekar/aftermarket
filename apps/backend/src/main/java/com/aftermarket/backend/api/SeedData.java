@@ -22,25 +22,31 @@ public class SeedData implements ApplicationRunner {
     private final MembershipRepository memberships;
     private final ApprovalRuleRepository rules;
     private final PasswordEncoder passwords;
+    private final CcrSeedData ccrSeed;
+    private final boolean seedDemoData;
 
     public SeedData(
             AppGroupRepository groups,
             AppUserRepository users,
             MembershipRepository memberships,
             ApprovalRuleRepository rules,
-            PasswordEncoder passwords) {
+            CcrSeedData ccrSeed,
+            PasswordEncoder passwords,
+            @org.springframework.beans.factory.annotation.Value("${aftermarket.seed-demo-data:false}") boolean seedDemoData) {
         this.groups = groups;
         this.users = users;
         this.memberships = memberships;
         this.rules = rules;
+        this.ccrSeed = ccrSeed;
         this.passwords = passwords;
+        this.seedDemoData = seedDemoData;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        ensureGroup("employees", "Employees", "claim:create,claim:read:own,task:complete:employee");
-        ensureGroup("supervisors", "Supervisors", "claim:read:all,task:approve:manager,approval:review");
-        ensureGroup("finance", "Finance", "claim:read:all,task:approve:finance,report:read,approval:decide");
+        ensureGroup("employees", "Employees", "ccr:create,ccr:read:own,task:complete:employee");
+        ensureGroup("supervisors", "Supervisors", "ccr:read:all,task:approve:manager,approval:review");
+        ensureGroup("finance", "Finance", "ccr:read:all,task:approve:finance,report:read,approval:decide");
         ensureUser("employee1@aftermarket.dev", "Erin Employee", "ZZ0X", List.of("employees"));
         ensureUser("manager1@aftermarket.dev", "Morgan Manager", "ZZ1X", List.of("employees", "supervisors"));
         ensureUser("finance1@aftermarket.dev", "Frankie Finance", "ZZ1X", List.of("finance"));
@@ -53,6 +59,9 @@ public class SeedData implements ApplicationRunner {
             rule.setFinanceTeam("finance");
             rule.setCreatedBy("seed");
             rules.save(rule);
+        }
+        if (seedDemoData) {
+            ccrSeed.seedIfEmpty();
         }
     }
 

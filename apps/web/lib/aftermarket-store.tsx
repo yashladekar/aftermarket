@@ -6,12 +6,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
 import { backendPath } from "@/lib/constants"
-import type { ClaimRow } from "@/lib/aftermarket-data"
-import { claims as seedClaims } from "@/lib/aftermarket-data"
 
 export type PendingApprovalItem = {
   taskId: string
@@ -41,30 +40,6 @@ export type ApprovalDecisionRow = {
   decidedOn: string | null
 }
 
-export type ApprovalRow = {
-  id: string
-  requestType: string
-  category: string
-  level: string
-  overall: string
-  clearing: string
-  doa: string
-  valueVat: string
-  initialTotal: string
-  risks: string
-  risksNegative?: boolean
-  opportunities: string
-  vendorCode: string
-  vendorName: string
-  coc: string
-  raiser: string
-  stakeholders: string
-  daysPending: string
-  openEnquiries: string
-  actionOutside: string
-  ageDate: string
-}
-
 export type NotificationItem = {
   id: string
   type: string
@@ -76,193 +51,14 @@ export type NotificationItem = {
   createdOn?: string
 }
 
-export type MandateClaim = {
-  lineId: string
-  supplierClaimType: string
-  createdOn: string
-  fiscalYear: string
-  buyerCode: string
-  buyerName: string
-  pmCode: string
-  pmName: string
-  coc: string
-  vendorCode: string
-  vendorName: string
-  dt2VendorCode: string
-  description: string
-  implementationDate: string
-  reportingValue: string
-  status: string
-  nonStandard: string
-  isReserve: boolean
-}
-
-export type MandateForm = {
-  problem: string
-  details: string
-  fbp: string
-  reds: string
-  proposedChanges: string
-  mainRisk: string
-  category: string
-  audit: string
-  stakeholders: string
-  ariba: string
-}
-
-export const initialMandateForm: MandateForm = {
-  problem: "",
-  details: "",
-  fbp: "FBP Officer",
-  reds: "",
-  proposedChanges: "",
-  mainRisk: "",
-  category: "",
-  audit: "",
-  stakeholders: "",
-  ariba: "",
-}
-
-type BackendClaim = {
-  lineId: string
-  parentId?: string
-  supplierClaimType?: string
-  transactionType?: string
-  fiscalYear?: string
-  coc?: string
-  confidential?: boolean
-  vendorName?: string
-  vendorCode?: string
-  description?: string
-  reportingValue?: string
-  reportingNegative?: boolean
-  status?: string
-  createdOn?: string
-  implementationDate?: string
-  reserve?: boolean
-  buyerCode?: string
-  buyerName?: string
-  pmCode?: string
-  pmName?: string
-}
-
-type BackendApproval = {
-  id: string
-  requestType?: string
-  category?: string
-  level?: string
-  overall?: string
-  clearing?: string
-  doa?: string
-  valueVat?: string
-  initialTotal?: string
-  risks?: string
-  risksNegative?: boolean
-  opportunities?: string
-  vendorCode?: string
-  vendorName?: string
-  coc?: string
-  raiser?: string
-  stakeholders?: string
-  daysPending?: string
-  openEnquiries?: string
-  actionOutside?: string
-  ageDate?: string
-}
-
-function fmtDateTime(value?: string) {
-  if (!value) return ""
-  try {
-    return new Date(value)
-      .toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })
-      .toUpperCase()
-  } catch {
-    return value
-  }
-}
-
-function fmtDateOnly(value?: string) {
-  if (!value) return ""
-  if (!/\d{4}-\d{2}-\d{2}/.test(value)) return value
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
-  return d
-    .toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
-    .toUpperCase()
-}
-
-function toClaimRow(c: BackendClaim): ClaimRow {
-  return {
-    lineId: c.lineId,
-    parentId: c.parentId ?? "",
-    supplierClaimType: c.supplierClaimType ?? "",
-    transactionType: c.transactionType ?? "",
-    fiscalYear: c.fiscalYear ?? "2024-2025",
-    coc: c.coc ?? "ZZ COC Test",
-    confidential: c.confidential ?? false,
-    vendorName: c.vendorName ?? "",
-    vendorCode: c.vendorCode ?? "",
-    description: c.description ?? "",
-    reportingValue: c.reportingValue ?? "0.0000",
-    reportingNegative: c.reportingNegative,
-    status: c.status ?? "Draft",
-    createdOn: fmtDateTime(c.createdOn),
-    implementationDate: fmtDateOnly(c.implementationDate),
-    isReserve: c.reserve ?? false,
-    buyerCode: c.buyerCode ?? "ZZ0X",
-    buyerName: c.buyerName ?? "Buyer Officer",
-    pmCode: c.pmCode ?? "ZZ1X",
-    pmName: c.pmName ?? "Purchasing Manager",
-  }
-}
-
-function toApprovalRow(a: BackendApproval): ApprovalRow {
-  return {
-    id: a.id,
-    requestType: a.requestType ?? "Mandate",
-    category: a.category ?? "",
-    level: a.level ?? "Local Clearing House",
-    overall: a.overall ?? "",
-    clearing: a.clearing ?? "",
-    doa: a.doa ?? "",
-    valueVat: a.valueVat ?? "",
-    initialTotal: a.initialTotal ?? "-",
-    risks: a.risks ?? "",
-    risksNegative: a.risksNegative,
-    opportunities: a.opportunities ?? "",
-    vendorCode: a.vendorCode ?? "",
-    vendorName: a.vendorName ?? "",
-    coc: a.coc ?? "",
-    raiser: a.raiser ?? "",
-    stakeholders: a.stakeholders ?? "",
-    daysPending: a.daysPending ?? "0",
-    openEnquiries: a.openEnquiries ?? "",
-    actionOutside: a.actionOutside ?? "",
-    ageDate: a.ageDate ?? "",
-  }
-}
+export type WorkflowChange = { reference: string | null; seq: number }
 
 type Store = {
-  claims: ClaimRow[]
-  addClaim: (c: ClaimRow) => void
-  nextLineId: () => string
   pendingApprovals: PendingApprovalItem[]
   myApprovals: ApprovalDecisionRow[]
-  version: number
-  approvals: ApprovalRow[]
-  addApproval: (a: ApprovalRow) => void
   notifications: NotificationItem[]
   unreadCount: number
+  lastChange: WorkflowChange
   refresh: () => void
   completeTask: (
     taskId: string,
@@ -276,68 +72,100 @@ const Ctx = createContext<Store | null>(null)
 
 export function AftermarketStoreProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const [backendClaims, setBackendClaims] = useState<ClaimRow[]>([])
+  const routerRef = useRef(router)
   const [pendingApprovals, setPendingApprovals] = useState<PendingApprovalItem[]>([])
   const [myApprovals, setMyApprovals] = useState<ApprovalDecisionRow[]>([])
-  const [backendApprovals, setBackendApprovals] = useState<ApprovalRow[]>([])
-  const [version, setVersion] = useState(0)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [extra, setExtra] = useState<ClaimRow[]>([])
-  const [extraApprovals, setExtraApprovals] = useState<ApprovalRow[]>([])
-  const [tick, setTick] = useState(0)
+  const [lastChange, setLastChange] = useState<WorkflowChange>({ reference: null, seq: 0 })
+  const loadRef = useRef<() => void>(() => {})
 
-  const refresh = useCallback(() => setTick((t) => t + 1), [])
+  const refresh = useCallback(() => loadRef.current(), [])
+
+  useEffect(() => {
+    routerRef.current = router
+  }, [router])
 
   useEffect(() => {
     let cancelled = false
-    const load = async () => {
+    let inFlight = false
+    let queued = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const fetchAll = async () => {
       try {
-        const [claimsRes, pendingRes, decidedRes, approvalsRes, notificationsRes] =
-          await Promise.all([
-            fetch(backendPath("/claims")),
-            fetch(backendPath("/approvals/pending")),
-            fetch(backendPath("/approvals/decided")),
-            fetch(backendPath("/mandates/approvals/view")),
-            fetch(backendPath("/notifications")),
-          ])
-        if (claimsRes.status === 401) {
-          if (!cancelled) router.refresh()
+        const [pendingRes, decidedRes, notificationsRes] = await Promise.all([
+          fetch(backendPath("/approvals/pending"), { cache: "no-store" }),
+          fetch(backendPath("/approvals/decided"), { cache: "no-store" }),
+          fetch(backendPath("/notifications"), { cache: "no-store" }),
+        ])
+        if (pendingRes.status === 401) {
+          if (!cancelled) routerRef.current.refresh()
           return
         }
-        if (claimsRes.ok) {
-          const rows = (await claimsRes.json()) as BackendClaim[]
-          if (!cancelled) setBackendClaims(rows.map(toClaimRow))
-        }
+        if (cancelled) return
         if (pendingRes.ok) {
-          const rows = (await pendingRes.json()) as PendingApprovalItem[]
-          if (!cancelled) setPendingApprovals(rows ?? [])
+          setPendingApprovals((await pendingRes.json()) as PendingApprovalItem[])
         }
         if (decidedRes.ok) {
-          const rows = (await decidedRes.json()) as ApprovalDecisionRow[]
-          if (!cancelled) setMyApprovals(rows ?? [])
-        }
-        if (approvalsRes.ok) {
-          const rows = (await approvalsRes.json()) as BackendApproval[]
-          if (!cancelled) setBackendApprovals(rows.map(toApprovalRow))
+          setMyApprovals((await decidedRes.json()) as ApprovalDecisionRow[])
         }
         if (notificationsRes.ok) {
-          const body = (await notificationsRes.json()) as {
-            items: NotificationItem[]
-          }
-          if (!cancelled) setNotifications(body.items ?? [])
+          const body = (await notificationsRes.json()) as { items: NotificationItem[] }
+          setNotifications(body.items ?? [])
         }
-        if (!cancelled) setVersion((v) => v + 1)
       } catch {
-        /* backend unavailable: seed fallback stays */
+        /* backend unavailable: keep the last known data */
       }
     }
-    load()
-    const timer = setInterval(load, 15000)
+
+    const load = async () => {
+      if (inFlight) {
+        queued = true
+        return
+      }
+      inFlight = true
+      await fetchAll()
+      inFlight = false
+      if (queued && !cancelled) {
+        queued = false
+        void load()
+      }
+    }
+
+    const schedule = () => {
+      if (cancelled) return
+      clearTimeout(timer)
+      timer = setTimeout(() => void load(), 300)
+    }
+
+    loadRef.current = () => void load()
+    void load()
+
+    const source = new EventSource(backendPath("/events/stream"))
+    let dropped = false
+    source.addEventListener("notification", schedule)
+    source.addEventListener("workflow", (event: MessageEvent) => {
+      const data = safeParse(event.data)
+      const reference = typeof data?.reference === "string" ? data.reference : null
+      setLastChange((prev) => ({ reference, seq: prev.seq + 1 }))
+      schedule()
+    })
+    source.onerror = () => {
+      dropped = true
+    }
+    source.onopen = () => {
+      if (dropped) {
+        dropped = false
+        schedule()
+      }
+    }
+
     return () => {
       cancelled = true
-      clearInterval(timer)
+      clearTimeout(timer)
+      source.close()
     }
-  }, [tick, router])
+  }, [])
 
   const completeTask = useCallback(
     async (
@@ -362,43 +190,36 @@ export function AftermarketStoreProvider({ children }: { children: React.ReactNo
   }, [])
 
   const value = useMemo<Store>(() => {
-    const claims = [...extra, ...backendClaims, ...seedClaims]
     return {
-      claims,
-      addClaim: (c) => setExtra((e) => [...e, c]),
-      nextLineId: () => {
-        const nums = claims.map((c) =>
-          parseInt(c.lineId.split("-")[1] ?? "0", 10)
-        )
-        const max = Math.max(0, ...nums.filter((n) => Number.isFinite(n)))
-        return `MCI-${String(max + 1).padStart(5, "0")}`
-      },
       pendingApprovals,
       myApprovals,
-      version,
-      approvals: [...backendApprovals, ...extraApprovals],
-      addApproval: (a) => setExtraApprovals((e) => [a, ...e]),
       notifications,
       unreadCount: notifications.filter((n) => !n.read).length,
+      lastChange,
       refresh,
       completeTask,
       markAllNotificationsRead,
     }
   }, [
-    extra,
-    extraApprovals,
-    backendClaims,
     pendingApprovals,
     myApprovals,
-    version,
-    backendApprovals,
     notifications,
+    lastChange,
     refresh,
     completeTask,
     markAllNotificationsRead,
   ])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
+function safeParse(text: string): Record<string, unknown> | null {
+  try {
+    const value = JSON.parse(text)
+    return value && typeof value === "object" ? (value as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
 }
 
 export function useAftermarketStore() {

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import {
   CircleCheck,
   Download,
@@ -22,10 +22,12 @@ import {
 } from "@workspace/ui/components/table"
 import { CcrTopNav } from "@/components/aftermarket/ccr-top-nav"
 import {
-  demoCcrDetail,
-  vendorCatalog,
-  vendorPartsCatalog,
-} from "@/lib/ccr-data"
+  useCcrApi,
+  type BackendCcrDetail,
+  type CcrActivityEntry,
+} from "@/lib/ccr-api"
+import { useCcrCatalog } from "@/lib/use-ccr-catalog"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { cn } from "@workspace/ui/lib/utils"
 
 const detailTabs = [
@@ -42,41 +44,79 @@ const detailTabs = [
   "CCR Activity Log",
 ] as const
 
-const detailFields: { label: string; key: keyof typeof demoCcrDetail }[] = [
-  { label: "Currency", key: "currency" },
-  { label: "Governance ?", key: "governance" },
-  { label: "VOR Qty", key: "vorQty" },
-  { label: "BO Qty", key: "boQty" },
-  { label: "Is ATB ?", key: "isATB" },
-  { label: "Is BB ?", key: "isBB" },
-  { label: "Supply Issue", key: "supplyIssue" },
-  { label: "Created By", key: "createdBy" },
-  { label: "Created On", key: "createdOn" },
-]
-
-const impactFields: { label: string; key: keyof typeof demoCcrDetail }[] = [
-  { label: "Material Inventory Impact", key: "materialInventoryImpact" },
-  { label: "Material Cost Impact", key: "materialCostImpact" },
-  { label: "Material Lead Time Impact", key: "materialLeadTimeImpact" },
-  { label: "Material Storage Cost Impact", key: "materialStorageImpact" },
-  { label: "Total Impact", key: "totalImpact" },
-]
-
 function CcrDetailView() {
   const params = useSearchParams()
-  const vendorsParam = params.get("vendors") ?? "MRDFN"
-  const partsParam = params.get("parts") ?? "5201140783,5201140784"
+  const reference = params.get("ref") ?? ""
+  const vendorsParam = params.get("vendors") ?? ""
+  const partsParam = params.get("parts") ?? ""
   const vendorCodes = vendorsParam.split(",").filter(Boolean)
   const partNumbers = partsParam.split(",").filter(Boolean)
   const [activeTab, setActiveTab] =
     useState<(typeof detailTabs)[number]>("Summary")
   const [query, setQuery] = useState("")
+  const { getCcr, getCcrActivity } = useCcrApi()
+  const { vendors: vendorCatalog, parts: vendorPartsCatalog } = useCcrCatalog()
+  const [detail, setDetail] = useState<BackendCcrDetail | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [activity, setActivity] = useState<CcrActivityEntry[] | null>(null)
+  const [activityError, setActivityError] = useState<string | null>(null)
+  const { lastChange } = useAftermarketStore()
 
-  const vendor = vendorCatalog.find((v) => v.code === vendorCodes[0])
-  const parts = vendorPartsCatalog.filter((p) =>
-    partNumbers.includes(p.partNumber)
-  )
-  const matches = parts.filter((p) => {
+  // Reloads on mount and on every SSE change that names this request (or is unscoped).
+  const refreshForChange =
+    lastChange.reference === null || lastChange.reference === reference ? lastChange.seq : 0
+
+  useEffect(() => {
+    if (activeTab !== "CCR Activity Log" || !reference) return
+    let cancelled = false
+    setActivityError(null)
+    getCcrActivity(reference)
+      .then((rows) => {
+        if (!cancelled) setActivity(rows)
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setActivityError(e instanceof Error ? e.message : "Failed to load activity")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, reference, getCcrActivity, refreshForChange])
+
+  useEffect(() => {
+    if (!reference) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const row = await getCcr(reference)
+        if (!cancelled) setDetail(row)
+      } catch (e) {
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : "Failed to load CCR")
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [getCcr, reference, refreshForChange])
+
+  const title = detail?.reference ?? reference ?? "CCR"
+  const status = detail?.status ?? "Submitted"
+  const vendor =
+    vendorCatalog.find((v) => v.code === (detail?.vendorCode ?? vendorCodes[0])) ??
+    (vendorCodes[0]
+      ? { code: vendorCodes[0], name: detail?.vendorName ?? "" }
+      : undefined)
+  const effectiveParts =
+    detail?.partRefs?.length || partNumbers.length
+      ? vendorPartsCatalog.filter((p) =>
+          (detail?.partRefs?.length ? detail.partRefs : partNumbers).includes(
+            p.partNumber
+          )
+        )
+      : vendorPartsCatalog.filter((p) => p.vendorCode === vendor?.code).slice(0, 5)
+  const matches = effectiveParts.filter((p) => {
     const q = query.trim().toLowerCase()
     if (!q) return true
     return `${p.partNumber} ${p.description}`.toLowerCase().includes(q)
@@ -88,7 +128,7 @@ function CcrDetailView() {
 
       <div className="flex items-center justify-between bg-neutral-700 px-4 py-2 text-white">
         <h1 className="text-[15px] font-bold">
-          {demoCcrDetail.reference} - {demoCcrDetail.status}
+          {title} - {status}
         </h1>
         <div className="flex items-center gap-2">
           <Button
@@ -129,45 +169,82 @@ function CcrDetailView() {
       </nav>
 
       <main className="space-y-3 px-4 py-3">
-        <p className="border-l-2 border-amber-600 bg-amber-50 px-3 py-2 text-[12px] leading-snug text-neutral-700">
-          {demoCcrDetail.forecastWarning.split(". ").map((line, i) => (
-            <span key={i} className="block">
-              {line}
-              {i < 1 ? "." : ""}
-            </span>
-          ))}
+        {error && (
+          <p className="rounded bg-red-50 px-3 py-2 text-[12px] font-medium text-red-700">
+            {error}
+          </p>
+        )}
+        <p className="border-l-2 border-emerald-600 bg-emerald-50 px-3 py-2 text-[12px] leading-snug text-neutral-700">
+          CCR {title} was submitted and routed to the Manager for first
+          approval. Once approved it moves on to Finance.
         </p>
 
-        <section className="bg-white">
-          <h2 className="bg-neutral-200 px-3 py-1.5 text-[13px] font-bold text-neutral-800">
-            Impact Analysis
-          </h2>
-          <div className="grid grid-cols-2 gap-px bg-neutral-200 md:grid-cols-5">
-            {impactFields.map((f) => (
-              <div key={f.key} className="bg-white px-3 py-2">
-                <p className="text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
-                  {f.label}
-                </p>
-                <p className="mt-0.5 text-[13px] font-bold text-neutral-800">
-                  {demoCcrDetail[f.key] || "—"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        {activeTab === "CCR Activity Log" && (
+          <section className="bg-white">
+            <h2 className="bg-neutral-200 px-3 py-1.5 text-[13px] font-bold text-neutral-800">
+              CCR Activity Log
+            </h2>
+            {activityError && (
+              <p className="px-3 py-2 text-[12px] text-red-700">{activityError}</p>
+            )}
+            {!activityError && activity === null && (
+              <p className="px-3 py-2 text-[12px] text-neutral-500">Loading activity…</p>
+            )}
+            {activity && activity.length === 0 && (
+              <p className="px-3 py-2 text-[12px] text-neutral-500">No activity recorded for this CCR.</p>
+            )}
+            {activity && activity.length > 0 && (
+              <Table className="text-[12px]">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    {["When", "Action", "Description", "By"].map((h) => (
+                      <TableHead key={h} className="px-2 py-1.5 text-[11px] font-semibold text-neutral-600">
+                        {h}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activity.map((entry, index) => (
+                    <TableRow key={`${entry.createdOn}-${index}`}>
+                      <TableCell className="px-2 py-1.5 whitespace-nowrap">
+                        {new Date(entry.createdOn).toLocaleString("en-GB")}
+                      </TableCell>
+                      <TableCell className="px-2 py-1.5 whitespace-nowrap">{entry.action}</TableCell>
+                      <TableCell className="px-2 py-1.5 whitespace-normal">{entry.description ?? "—"}</TableCell>
+                      <TableCell className="px-2 py-1.5 whitespace-nowrap">
+                        {entry.actorName ?? entry.actorId ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </section>
+        )}
 
         <section className="bg-white">
           <h2 className="bg-neutral-200 px-3 py-1.5 text-[13px] font-bold text-neutral-800">
             CCR Details
           </h2>
           <div className="grid grid-cols-3 gap-px bg-neutral-200 sm:grid-cols-5 lg:grid-cols-9">
-            {detailFields.map((f) => (
-              <div key={f.key} className="bg-white px-2 py-2">
+            {[
+              { label: "Status", value: status },
+              { label: "Vendor", value: vendor?.code ?? "—" },
+              { label: "Parts", value: String(matches.length || effectiveParts.length) },
+              { label: "Justification", value: detail?.justification ? "Provided" : "—" },
+              { label: "On Behalf Reason", value: detail?.onBehalfReason || params.get("onBehalf") || "—" },
+              { label: "Signoff", value: detail?.signoffLevel ?? "—" },
+              { label: "Workflow", value: detail?.currentTaskKey ?? detail?.workflowState ?? "—" },
+              { label: "Recent Update", value: detail?.recentUpdate ?? "CCR Submitted" },
+              { label: "Reference", value: title },
+            ].map((f) => (
+              <div key={f.label} className="bg-white px-2 py-2">
                 <p className="text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
                   {f.label}
                 </p>
-                <p className="mt-0.5 text-[12px] font-bold text-neutral-800">
-                  {demoCcrDetail[f.key] || "—"}
+                <p className="mt-0.5 truncate text-[12px] font-bold text-neutral-800" title={f.value}>
+                  {f.value || "—"}
                 </p>
               </div>
             ))}
@@ -185,36 +262,23 @@ function CcrDetailView() {
                   <span className="flex size-4 items-center justify-center rounded-sm bg-emerald-100 text-[10px] text-emerald-800">
                     ▦
                   </span>
-                  {vendor?.code}
+                  {vendor?.code ?? "—"}
                 </p>
                 <p className="flex items-center gap-1.5 text-neutral-600 uppercase">
                   <span className="flex size-4 items-center justify-center rounded-sm bg-emerald-100 text-[10px] text-emerald-800">
                     ▦
                   </span>
-                  {vendor?.name}
+                  {vendor?.name ?? detail?.vendorName ?? "—"}
                 </p>
               </div>
             </div>
             <div className="bg-white">
               <h3 className="bg-neutral-200 px-3 py-1.5 text-[13px] font-bold text-neutral-800">
-                Buyer
+                Justification
               </h3>
-              <div className="space-y-1 px-3 py-2 text-[12px]">
-                <p className="flex items-center gap-1.5">
-                  <span className="flex size-4 items-center justify-center rounded-sm bg-emerald-100 text-[10px] text-emerald-800">
-                    ▦
-                  </span>
-                  {demoCcrDetail.buyerCode}
-                </p>
-                <p className="flex items-center gap-1.5">
-                  <CircleCheck className="size-3.5 text-emerald-700" />
-                  {demoCcrDetail.createdBy}
-                </p>
-                <p className="flex items-center gap-1.5 text-emerald-800">
-                  <span className="text-[11px]">✉</span>
-                  {demoCcrDetail.buyerEmail}
-                </p>
-              </div>
+              <p className="px-3 py-2 text-[12px] text-neutral-700">
+                {detail?.justification || "—"}
+              </p>
             </div>
           </div>
 
@@ -339,7 +403,9 @@ function CcrDetailView() {
             ← Back to Work Queue
           </Link>
           <span className="text-[11px] text-neutral-500">
-            Demo detail view — backend wiring comes later.
+            {detail
+              ? `Loaded from backend · ${detail.workflowState ?? ""} ${detail.currentTaskKey ?? ""}`.trim()
+              : "Loading from backend…"}
           </span>
         </div>
       </main>

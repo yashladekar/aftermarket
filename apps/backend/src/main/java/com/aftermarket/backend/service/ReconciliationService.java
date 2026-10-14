@@ -5,10 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.aftermarket.backend.domain.Claim;
-import com.aftermarket.backend.domain.MandateRequest;
-import com.aftermarket.backend.repo.ClaimRepository;
-import com.aftermarket.backend.repo.MandateRequestRepository;
+import com.aftermarket.backend.domain.Ccr;
+import com.aftermarket.backend.repo.CcrRepository;
 import com.aftermarket.backend.workflow.WorkflowFacade;
 import com.aftermarket.backend.workflow.dto.ProcessInstanceResponse;
 
@@ -17,57 +15,39 @@ public class ReconciliationService {
 
     private static final Logger log = LoggerFactory.getLogger(ReconciliationService.class);
 
-    private final ClaimRepository claims;
-    private final MandateRequestRepository mandates;
+    private final CcrRepository ccrs;
     private final WorkflowFacade workflow;
-    private final ClaimService claimService;
-    private final MandateService mandateService;
+    private final CcrService ccrService;
     private final ActivityService activity;
 
     public ReconciliationService(
-            ClaimRepository claims,
-            MandateRequestRepository mandates,
+            CcrRepository ccrs,
             WorkflowFacade workflow,
-            ClaimService claimService,
-            MandateService mandateService,
+            CcrService ccrService,
             ActivityService activity) {
-        this.claims = claims;
-        this.mandates = mandates;
+        this.ccrs = ccrs;
         this.workflow = workflow;
-        this.claimService = claimService;
-        this.mandateService = mandateService;
+        this.ccrService = ccrService;
         this.activity = activity;
     }
 
     @Scheduled(fixedDelayString = "${aftermarket.reconciliation-interval-ms:15000}")
     public void reconcile() {
-        for (Claim claim : claims.findByWorkflowInstanceIdIsNotNull()) {
-            if ("ENDED".equals(claim.getWorkflowState())) {
+        for (Ccr ccr : ccrs.findByWorkflowInstanceIdIsNotNull()) {
+            if ("ENDED".equals(ccr.getWorkflowState())) {
                 continue;
             }
             try {
-                ProcessInstanceResponse instance = workflow.getInstance(claim.getWorkflowInstanceId());
-                String before = claim.getCurrentTaskKey();
-                claimService.applyInstance(claim, instance);
-                claims.save(claim);
-                if (before == null ? claim.getCurrentTaskKey() != null
-                        : !before.equals(claim.getCurrentTaskKey())) {
-                    activity.record("RECONCILED", claim.getLineId(), "Claim", claim.getLineId(), null, "{}");
+                ProcessInstanceResponse instance = workflow.getInstance(ccr.getWorkflowInstanceId());
+                String before = ccr.getCurrentTaskKey();
+                ccrService.applyInstance(ccr, instance);
+                ccrs.save(ccr);
+                if (before == null ? ccr.getCurrentTaskKey() != null
+                        : !before.equals(ccr.getCurrentTaskKey())) {
+                    activity.record("RECONCILED", ccr.getReference(), "Ccr", ccr.getReference(), null, "{}");
                 }
             } catch (RuntimeException e) {
-                log.warn("Reconciliation failed for claim {}: {}", claim.getLineId(), e.getMessage());
-            }
-        }
-        for (MandateRequest mandate : mandates.findByWorkflowInstanceIdIsNotNull()) {
-            if ("ENDED".equals(mandate.getWorkflowState())) {
-                continue;
-            }
-            try {
-                ProcessInstanceResponse instance = workflow.getInstance(mandate.getWorkflowInstanceId());
-                mandateService.applyInstance(mandate, instance);
-                mandates.save(mandate);
-            } catch (RuntimeException e) {
-                log.warn("Reconciliation failed for mandate {}: {}", mandate.getNumber(), e.getMessage());
+                log.warn("Reconciliation failed for CCR {}: {}", ccr.getReference(), e.getMessage());
             }
         }
     }

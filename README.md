@@ -14,7 +14,7 @@ aftermarket/
 │   ├── eslint-config/     # @workspace/eslint-config — shared flat ESLint configs
 │   └── typescript-config/ # @workspace/typescript-config — shared tsconfig bases
 ├── schema.sql     # MCI reference schema (Appian)
-├── diagram.svg    # Claim Lifecycle / Mandate Approval flows
+├── diagram.svg    # workflow diagram
 ├── turbo.json
 ├── pnpm-workspace.yaml
 └── package.json

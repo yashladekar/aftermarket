@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
 import {
   parseAsInteger,
@@ -51,7 +52,6 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 import {
   ccrTypeOptions,
-  dummyCcrs,
   fmtCcrDate,
   type CcrPriority,
   type CcrRow,
@@ -62,6 +62,8 @@ import {
   type WorkQueueFilterInput,
   type WorkQueueFilters,
 } from "@/lib/ccr-schemas"
+import { useCcrApi } from "@/lib/ccr-api"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { FieldError } from "@/components/aftermarket/wizard-fields"
 
 const ROW_OPTIONS = [10, 25, 50] as const
@@ -265,12 +267,40 @@ function PriorityCell({ priority }: { priority: CcrPriority }) {
 }
 
 export function CcrWorkQueue() {
+  const router = useRouter()
   const [query, setQuery] = useQueryStates(workQueueQueryParsers)
   const form = useForm<WorkQueueFilterInput, unknown, WorkQueueFilters>({
     resolver: zodResolver(workQueueFilterSchema),
     defaultValues: workQueueFilterDefaults,
   })
   const { reset: resetForm } = form
+  const { listCcrs } = useCcrApi()
+  const { pendingApprovals, completeTask } = useAftermarketStore()
+  const [actingTask, setActingTask] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const pendingByRef = useMemo(() => {
+    const map = new Map<string, (typeof pendingApprovals)[number]>()
+    for (const task of pendingApprovals) {
+      if (task.requestId && !map.has(task.requestId)) map.set(task.requestId, task)
+    }
+    return map
+  }, [pendingApprovals])
+  const decide = async (reference: string, decision: "APPROVED" | "REJECTED") => {
+    const task = pendingByRef.get(reference)
+    if (!task) return
+    setActingTask(task.taskId)
+    setActionError(null)
+    try {
+      await completeTask(task.taskId, decision)
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to complete approval")
+    } finally {
+      setActingTask(null)
+    }
+  }
+  const [backendRows, setBackendRows] = useState<CcrRow[]>([])
+  const [backendError, setBackendError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const rowsPerPage = ROW_OPTIONS.includes(
     query.rowsPerPage as (typeof ROW_OPTIONS)[number]
   )
@@ -342,7 +372,7 @@ export function CcrWorkQueue() {
       "Last 90 days": 90,
     }
 
-    return dummyCcrs
+    return backendRows
       .filter((r) => {
         if (
           vendorQ &&
@@ -371,12 +401,53 @@ export function CcrWorkQueue() {
       })
       .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
   }, [
+    backendRows,
     query.vendorQuery,
     query.partQuery,
     query.codeRefQuery,
     query.ccrType,
     query.priority,
     query.dateRequested,
+  ])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setBackendError(null)
+      try {
+        const params = new URLSearchParams()
+        if (query.vendorQuery) params.set("vendorQuery", query.vendorQuery)
+        if (query.partQuery) params.set("partQuery", query.partQuery)
+        if (query.codeRefQuery) params.set("codeRefQuery", query.codeRefQuery)
+        if (query.ccrType !== "Any") params.set("ccrType", query.ccrType)
+        if (query.priority !== "Any") params.set("priority", query.priority)
+        if (query.dateRequested !== "Any")
+          params.set("dateRequested", query.dateRequested)
+        const rows = await listCcrs(params)
+        if (!cancelled) setBackendRows(rows)
+      } catch (e) {
+        if (!cancelled)
+          setBackendError(
+            e instanceof Error ? e.message : "Failed to load CCRs"
+          )
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    listCcrs,
+    query.vendorQuery,
+    query.partQuery,
+    query.codeRefQuery,
+    query.ccrType,
+    query.priority,
+    query.dateRequested,
+    pendingApprovals,
   ])
 
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage))
@@ -406,6 +477,11 @@ export function CcrWorkQueue() {
       <h2 className="py-1 text-center text-[13px] font-bold text-neutral-800">
         My Work Queue
       </h2>
+      {(backendError || actionError) && (
+        <p className="mb-2 rounded bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          {actionError ?? backendError}
+        </p>
+      )}
 
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
@@ -523,7 +599,7 @@ export function CcrWorkQueue() {
                 {columnDefs.map((c) => (
                   <DropdownMenuItem
                     key={c.key}
-                    onSelect={(e) => e.preventDefault()}
+                    closeOnClick={false}
                     className="flex items-center gap-2"
                   >
                     <Checkbox
@@ -659,7 +735,16 @@ export function CcrWorkQueue() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visible.length === 0 ? (
+            {loading ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={visibleCount}
+                  className="py-8 text-center text-[12px] text-neutral-500"
+                >
+                  Loading CCRs…
+                </TableCell>
+              </TableRow>
+            ) : visible.length === 0 ? (
               <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={visibleCount}
@@ -762,6 +847,29 @@ export function CcrWorkQueue() {
                     </TableCell>
                   )}
                   <TableCell className="px-2 py-2 text-center">
+                    {pendingByRef.get(row.reference)?.canAct && (
+                      <span className="mr-1 inline-flex gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-6 bg-emerald-800 px-2 text-[11px] font-bold text-white hover:bg-emerald-700"
+                          disabled={actingTask === pendingByRef.get(row.reference)?.taskId}
+                          onClick={() => decide(row.reference, "APPROVED")}
+                        >
+                          APPROVE
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 border-red-200 px-2 text-[11px] font-bold text-red-600 hover:bg-red-50"
+                          disabled={actingTask === pendingByRef.get(row.reference)?.taskId}
+                          onClick={() => decide(row.reference, "REJECTED")}
+                        >
+                          REJECT
+                        </Button>
+                      </span>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         className="inline-flex size-6 items-center justify-center rounded text-neutral-500 outline-none hover:bg-neutral-100"
@@ -770,9 +878,27 @@ export function CcrWorkQueue() {
                         <EllipsisVertical className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Open CCR</DropdownMenuItem>
-                        <DropdownMenuItem>View parts</DropdownMenuItem>
-                        <DropdownMenuItem>Reassign approval</DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            router.push(
+                              `/ccr-demo-submitted?ref=${encodeURIComponent(row.reference)}`
+                            )
+                          }
+                        >
+                          Open CCR
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            router.push(
+                              `/ccr-demo-submitted?ref=${encodeURIComponent(row.reference)}`
+                            )
+                          }
+                        >
+                          View parts
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push("/tasks")}>
+                          Reassign approval
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

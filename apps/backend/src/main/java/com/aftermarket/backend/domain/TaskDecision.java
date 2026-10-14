@@ -4,7 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
-/** One approval decision taken on a workflow task (claim or mandate). */
+/** One approval decision taken on a workflow task. */
 @Entity
 @Table(name = "mci_task_decisions")
 public class TaskDecision extends BaseEntity {
