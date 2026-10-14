@@ -21,8 +21,13 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 import { CcrTopNav } from "@/components/aftermarket/ccr-top-nav"
-import { useCcrApi, type BackendCcrDetail } from "@/lib/ccr-api"
+import {
+  useCcrApi,
+  type BackendCcrDetail,
+  type CcrActivityEntry,
+} from "@/lib/ccr-api"
 import { useCcrCatalog } from "@/lib/use-ccr-catalog"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { cn } from "@workspace/ui/lib/utils"
 
 const detailTabs = [
@@ -49,10 +54,34 @@ function CcrDetailView() {
   const [activeTab, setActiveTab] =
     useState<(typeof detailTabs)[number]>("Summary")
   const [query, setQuery] = useState("")
-  const { getCcr } = useCcrApi()
+  const { getCcr, getCcrActivity } = useCcrApi()
   const { vendors: vendorCatalog, parts: vendorPartsCatalog } = useCcrCatalog()
   const [detail, setDetail] = useState<BackendCcrDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [activity, setActivity] = useState<CcrActivityEntry[] | null>(null)
+  const [activityError, setActivityError] = useState<string | null>(null)
+  const { lastChange } = useAftermarketStore()
+
+  // Reloads on mount and on every SSE change that names this request (or is unscoped).
+  const refreshForChange =
+    lastChange.reference === null || lastChange.reference === reference ? lastChange.seq : 0
+
+  useEffect(() => {
+    if (activeTab !== "CCR Activity Log" || !reference) return
+    let cancelled = false
+    setActivityError(null)
+    getCcrActivity(reference)
+      .then((rows) => {
+        if (!cancelled) setActivity(rows)
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setActivityError(e instanceof Error ? e.message : "Failed to load activity")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, reference, getCcrActivity, refreshForChange])
 
   useEffect(() => {
     if (!reference) return
@@ -70,7 +99,7 @@ function CcrDetailView() {
     return () => {
       cancelled = true
     }
-  }, [getCcr, reference])
+  }, [getCcr, reference, refreshForChange])
 
   const title = detail?.reference ?? reference ?? "CCR"
   const status = detail?.status ?? "Submitted"
@@ -149,6 +178,50 @@ function CcrDetailView() {
           CCR {title} was submitted and routed to the Manager for first
           approval. Once approved it moves on to Finance.
         </p>
+
+        {activeTab === "CCR Activity Log" && (
+          <section className="bg-white">
+            <h2 className="bg-neutral-200 px-3 py-1.5 text-[13px] font-bold text-neutral-800">
+              CCR Activity Log
+            </h2>
+            {activityError && (
+              <p className="px-3 py-2 text-[12px] text-red-700">{activityError}</p>
+            )}
+            {!activityError && activity === null && (
+              <p className="px-3 py-2 text-[12px] text-neutral-500">Loading activity…</p>
+            )}
+            {activity && activity.length === 0 && (
+              <p className="px-3 py-2 text-[12px] text-neutral-500">No activity recorded for this CCR.</p>
+            )}
+            {activity && activity.length > 0 && (
+              <Table className="text-[12px]">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    {["When", "Action", "Description", "By"].map((h) => (
+                      <TableHead key={h} className="px-2 py-1.5 text-[11px] font-semibold text-neutral-600">
+                        {h}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activity.map((entry, index) => (
+                    <TableRow key={`${entry.createdOn}-${index}`}>
+                      <TableCell className="px-2 py-1.5 whitespace-nowrap">
+                        {new Date(entry.createdOn).toLocaleString("en-GB")}
+                      </TableCell>
+                      <TableCell className="px-2 py-1.5 whitespace-nowrap">{entry.action}</TableCell>
+                      <TableCell className="px-2 py-1.5 whitespace-normal">{entry.description ?? "—"}</TableCell>
+                      <TableCell className="px-2 py-1.5 whitespace-nowrap">
+                        {entry.actorName ?? entry.actorId ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </section>
+        )}
 
         <section className="bg-white">
           <h2 className="bg-neutral-200 px-3 py-1.5 text-[13px] font-bold text-neutral-800">

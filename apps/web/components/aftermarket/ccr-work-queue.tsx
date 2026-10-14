@@ -63,6 +63,7 @@ import {
   type WorkQueueFilters,
 } from "@/lib/ccr-schemas"
 import { useCcrApi } from "@/lib/ccr-api"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { FieldError } from "@/components/aftermarket/wizard-fields"
 
 const ROW_OPTIONS = [10, 25, 50] as const
@@ -274,6 +275,29 @@ export function CcrWorkQueue() {
   })
   const { reset: resetForm } = form
   const { listCcrs } = useCcrApi()
+  const { pendingApprovals, completeTask } = useAftermarketStore()
+  const [actingTask, setActingTask] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const pendingByRef = useMemo(() => {
+    const map = new Map<string, (typeof pendingApprovals)[number]>()
+    for (const task of pendingApprovals) {
+      if (task.requestId && !map.has(task.requestId)) map.set(task.requestId, task)
+    }
+    return map
+  }, [pendingApprovals])
+  const decide = async (reference: string, decision: "APPROVED" | "REJECTED") => {
+    const task = pendingByRef.get(reference)
+    if (!task) return
+    setActingTask(task.taskId)
+    setActionError(null)
+    try {
+      await completeTask(task.taskId, decision)
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Failed to complete approval")
+    } finally {
+      setActingTask(null)
+    }
+  }
   const [backendRows, setBackendRows] = useState<CcrRow[]>([])
   const [backendError, setBackendError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -423,6 +447,7 @@ export function CcrWorkQueue() {
     query.ccrType,
     query.priority,
     query.dateRequested,
+    pendingApprovals,
   ])
 
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage))
@@ -452,9 +477,9 @@ export function CcrWorkQueue() {
       <h2 className="py-1 text-center text-[13px] font-bold text-neutral-800">
         My Work Queue
       </h2>
-      {backendError && (
+      {(backendError || actionError) && (
         <p className="mb-2 rounded bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-          {backendError}
+          {actionError ?? backendError}
         </p>
       )}
 
@@ -822,6 +847,29 @@ export function CcrWorkQueue() {
                     </TableCell>
                   )}
                   <TableCell className="px-2 py-2 text-center">
+                    {pendingByRef.get(row.reference)?.canAct && (
+                      <span className="mr-1 inline-flex gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-6 bg-emerald-800 px-2 text-[11px] font-bold text-white hover:bg-emerald-700"
+                          disabled={actingTask === pendingByRef.get(row.reference)?.taskId}
+                          onClick={() => decide(row.reference, "APPROVED")}
+                        >
+                          APPROVE
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 border-red-200 px-2 text-[11px] font-bold text-red-600 hover:bg-red-50"
+                          disabled={actingTask === pendingByRef.get(row.reference)?.taskId}
+                          onClick={() => decide(row.reference, "REJECTED")}
+                        >
+                          REJECT
+                        </Button>
+                      </span>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         className="inline-flex size-6 items-center justify-center rounded text-neutral-500 outline-none hover:bg-neutral-100"

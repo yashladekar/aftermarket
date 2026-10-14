@@ -32,7 +32,7 @@ public class SeedData implements ApplicationRunner {
             ApprovalRuleRepository rules,
             CcrSeedData ccrSeed,
             PasswordEncoder passwords,
-            @org.springframework.beans.factory.annotation.Value("${aftermarket.seed-demo-data:true}") boolean seedDemoData) {
+            @org.springframework.beans.factory.annotation.Value("${aftermarket.seed-demo-data:false}") boolean seedDemoData) {
         this.groups = groups;
         this.users = users;
         this.memberships = memberships;

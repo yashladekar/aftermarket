@@ -2,9 +2,17 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { ChevronDown } from "lucide-react"
+import { Bell, ChevronDown } from "lucide-react"
+import { logoutAction } from "@/app/actions/auth"
 import { useAftermarketSession } from "@/components/aftermarket/session-provider"
+import { useAftermarketStore } from "@/lib/aftermarket-store"
 import { cn } from "@workspace/ui/lib/utils"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu"
 
 function BrandMark() {
   return (
@@ -20,6 +28,7 @@ function BrandMark() {
 
 export function CcrTopNav({ active = "home" }: { active?: string }) {
   const session = useAftermarketSession()
+  const { notifications, unreadCount, markAllNotificationsRead } = useAftermarketStore()
   const userName = session?.name ?? "Demo User"
   const initials = userName
     .split(" ")
@@ -44,25 +53,81 @@ export function CcrTopNav({ active = "home" }: { active?: string }) {
           >
             HOME
           </Link>
-          <span className="cursor-pointer text-neutral-500 hover:text-neutral-900">
+          <Link
+            href="/all-requests"
+            className={cn(
+              "border-b-2 pb-1",
+              active === "all-requests"
+                ? "border-emerald-800 text-neutral-900"
+                : "border-transparent text-neutral-500 hover:text-neutral-900"
+            )}
+          >
             ALL REQUESTS
-          </span>
+          </Link>
           <span className="cursor-pointer text-neutral-500 hover:text-neutral-900">
             MANAGEMENT
           </span>
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* <span className="hidden max-w-64 truncate text-[13px] font-medium text-neutral-700 lg:block">
-            Aftermarket Commercial Change Manage...
-          </span> */}
           <ChevronDown className="size-3.5 text-neutral-500" />
-          <span
-            className="flex size-6 items-center justify-center rounded-full bg-neutral-200 text-[10px] font-bold text-neutral-700"
-            title={userName}
-          >
-            {initials || "DU"}
-          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="relative flex size-6 items-center justify-center rounded-full border border-neutral-300 outline-none hover:bg-neutral-100"
+              aria-label="Notifications"
+            >
+              <Bell className="size-3.5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <div className="flex items-center justify-between px-2 py-1.5">
+                <span className="text-[11px] font-bold text-neutral-700">NOTIFICATIONS</span>
+                <button
+                  type="button"
+                  className="text-[11px] font-semibold text-emerald-800 hover:underline"
+                  onClick={() => markAllNotificationsRead()}
+                >
+                  Mark all read
+                </button>
+              </div>
+              {notifications.length === 0 && (
+                <p className="px-2 py-3 text-xs text-neutral-500">No notifications yet.</p>
+              )}
+              {notifications.slice(0, 10).map((n) => (
+                <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-0.5">
+                  <span className="text-xs font-semibold text-neutral-900">{n.title}</span>
+                  <span className="text-[11px] whitespace-normal text-neutral-500">{n.body}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex size-6 items-center justify-center rounded-full bg-neutral-200 text-[10px] font-bold text-neutral-700 outline-none hover:bg-neutral-300"
+              aria-label="Account"
+              title={userName}
+            >
+              {initials || "DU"}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <div className="px-2 py-1.5">
+                <p className="text-xs font-semibold text-neutral-900">{userName}</p>
+                <p className="text-[11px] text-neutral-500">{session?.email ?? ""}</p>
+              </div>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-neutral-700 hover:bg-neutral-100"
+                >
+                  Sign out
+                </button>
+              </form>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

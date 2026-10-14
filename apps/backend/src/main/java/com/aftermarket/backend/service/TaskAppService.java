@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.aftermarket.backend.domain.TaskDecision;
 import com.aftermarket.backend.repo.CcrRepository;
@@ -57,6 +58,7 @@ public class TaskAppService {
         return task;
     }
 
+    @Transactional
     public ProcessInstanceResponse complete(SessionUser user, String taskId, Map<String, Object> variables) {
         TaskResponse task = workflow.getTask(taskId);
         assertCanAct(user, task);
@@ -65,6 +67,9 @@ public class TaskAppService {
         Map<String, Object> engineVars = new HashMap<>(input);
         engineVars.put("approved", approved);
         engineVars.put("decidedBy", user.id());
+        if ("managerApproval".equals(task.taskDefinitionKey())) {
+            engineVars.put("managerId", user.id());
+        }
         if (!engineVars.containsKey("comment")) {
             engineVars.put("comment", null);
         }
@@ -94,6 +99,9 @@ public class TaskAppService {
                 businessKey == null ? taskId : businessKey,
                 user.id(),
                 "{}");
+        if (businessKey != null) {
+            ccrService.publishToStakeholders(businessKey, user.id());
+        }
         return instance;
     }
 

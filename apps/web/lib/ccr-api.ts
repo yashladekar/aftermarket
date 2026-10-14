@@ -42,6 +42,17 @@ export type BackendCcrDetail = BackendCcrRow & {
   }[];
 };
 
+export type CcrActivityEntry = {
+  action: string;
+  description: string | null;
+  entityType: string;
+  entityId: string;
+  actorId: string | null;
+  actorName: string | null;
+  data: string | null;
+  createdOn: string;
+};
+
 export type CcrWizardPayload = {
   kind: string;
   vendors: { code: string; name: string }[];
@@ -140,6 +151,12 @@ export function useCcrApi() {
     [request]
   );
 
+  const getCcrActivity = useCallback(
+    (reference: string) =>
+      request<CcrActivityEntry[]>(`/ccrs/${encodeURIComponent(reference)}/activity`),
+    [request]
+  );
+
   const createCcr = useCallback(
     (payload: CcrWizardPayload) =>
       request<BackendCcrDetail>("/ccrs", {
@@ -157,5 +174,5 @@ export function useCcrApi() {
     [request]
   );
 
-  return { request, listCcrs, getCcr, createCcr, submitCcr, toCcrRow };
+  return { request, listCcrs, getCcr, getCcrActivity, createCcr, submitCcr, toCcrRow };
 }

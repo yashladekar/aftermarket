@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
@@ -50,11 +51,14 @@ export type NotificationItem = {
   createdOn?: string
 }
 
+export type WorkflowChange = { reference: string | null; seq: number }
+
 type Store = {
   pendingApprovals: PendingApprovalItem[]
   myApprovals: ApprovalDecisionRow[]
   notifications: NotificationItem[]
   unreadCount: number
+  lastChange: WorkflowChange
   refresh: () => void
   completeTask: (
     taskId: string,
@@ -68,52 +72,100 @@ const Ctx = createContext<Store | null>(null)
 
 export function AftermarketStoreProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const routerRef = useRef(router)
   const [pendingApprovals, setPendingApprovals] = useState<PendingApprovalItem[]>([])
   const [myApprovals, setMyApprovals] = useState<ApprovalDecisionRow[]>([])
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [tick, setTick] = useState(0)
+  const [lastChange, setLastChange] = useState<WorkflowChange>({ reference: null, seq: 0 })
+  const loadRef = useRef<() => void>(() => {})
 
-  const refresh = useCallback(() => setTick((t) => t + 1), [])
+  const refresh = useCallback(() => loadRef.current(), [])
+
+  useEffect(() => {
+    routerRef.current = router
+  }, [router])
 
   useEffect(() => {
     let cancelled = false
-    const load = async () => {
+    let inFlight = false
+    let queued = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const fetchAll = async () => {
       try {
-        const [pendingRes, decidedRes, notificationsRes] =
-          await Promise.all([
-            fetch(backendPath("/approvals/pending")),
-            fetch(backendPath("/approvals/decided")),
-            fetch(backendPath("/notifications")),
-          ])
+        const [pendingRes, decidedRes, notificationsRes] = await Promise.all([
+          fetch(backendPath("/approvals/pending"), { cache: "no-store" }),
+          fetch(backendPath("/approvals/decided"), { cache: "no-store" }),
+          fetch(backendPath("/notifications"), { cache: "no-store" }),
+        ])
         if (pendingRes.status === 401) {
-          if (!cancelled) router.refresh()
+          if (!cancelled) routerRef.current.refresh()
           return
         }
+        if (cancelled) return
         if (pendingRes.ok) {
-          const rows = (await pendingRes.json()) as PendingApprovalItem[]
-          if (!cancelled) setPendingApprovals(rows ?? [])
+          setPendingApprovals((await pendingRes.json()) as PendingApprovalItem[])
         }
         if (decidedRes.ok) {
-          const rows = (await decidedRes.json()) as ApprovalDecisionRow[]
-          if (!cancelled) setMyApprovals(rows ?? [])
+          setMyApprovals((await decidedRes.json()) as ApprovalDecisionRow[])
         }
         if (notificationsRes.ok) {
-          const body = (await notificationsRes.json()) as {
-            items: NotificationItem[]
-          }
-          if (!cancelled) setNotifications(body.items ?? [])
+          const body = (await notificationsRes.json()) as { items: NotificationItem[] }
+          setNotifications(body.items ?? [])
         }
       } catch {
-        /* backend unavailable: keep empty */
+        /* backend unavailable: keep the last known data */
       }
     }
-    load()
-    const timer = setInterval(load, 15000)
+
+    const load = async () => {
+      if (inFlight) {
+        queued = true
+        return
+      }
+      inFlight = true
+      await fetchAll()
+      inFlight = false
+      if (queued && !cancelled) {
+        queued = false
+        void load()
+      }
+    }
+
+    const schedule = () => {
+      if (cancelled) return
+      clearTimeout(timer)
+      timer = setTimeout(() => void load(), 300)
+    }
+
+    loadRef.current = () => void load()
+    void load()
+
+    const source = new EventSource(backendPath("/events/stream"))
+    let dropped = false
+    source.addEventListener("notification", schedule)
+    source.addEventListener("workflow", (event: MessageEvent) => {
+      const data = safeParse(event.data)
+      const reference = typeof data?.reference === "string" ? data.reference : null
+      setLastChange((prev) => ({ reference, seq: prev.seq + 1 }))
+      schedule()
+    })
+    source.onerror = () => {
+      dropped = true
+    }
+    source.onopen = () => {
+      if (dropped) {
+        dropped = false
+        schedule()
+      }
+    }
+
     return () => {
       cancelled = true
-      clearInterval(timer)
+      clearTimeout(timer)
+      source.close()
     }
-  }, [tick, router])
+  }, [])
 
   const completeTask = useCallback(
     async (
@@ -143,6 +195,7 @@ export function AftermarketStoreProvider({ children }: { children: React.ReactNo
       myApprovals,
       notifications,
       unreadCount: notifications.filter((n) => !n.read).length,
+      lastChange,
       refresh,
       completeTask,
       markAllNotificationsRead,
@@ -151,12 +204,22 @@ export function AftermarketStoreProvider({ children }: { children: React.ReactNo
     pendingApprovals,
     myApprovals,
     notifications,
+    lastChange,
     refresh,
     completeTask,
     markAllNotificationsRead,
   ])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
+function safeParse(text: string): Record<string, unknown> | null {
+  try {
+    const value = JSON.parse(text)
+    return value && typeof value === "object" ? (value as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
 }
 
 export function useAftermarketStore() {

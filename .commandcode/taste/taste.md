@@ -1,16 +1,26 @@
-- When extending frontend, preserve existing styling/design system and make new pages match it rather than restyling. Confidence: 0.95
+- Treats a rejection at the final approval step as cancelling the request (status Cancelled), distinct from a plain rejected state. Confidence: 0.3
+- Wants list/table statuses to read as either "Approved" or "Rejected" for finished requests, so the status column matches the decision outcome. Confidence: 0.5- When extending frontend, preserve existing styling/design system and make new pages match it rather than restyling. Confidence: 0.95
 - When a reference/base project exists, reuse its integration patterns and feature set for new work rather than designing greenfield. Confidence: 0.9
+- When adapting a reference app, use only its ideas and flow and write the implementation fresh; do not copy code from the reference. Confidence: 0.8
+- Wants existing Flowable BPMN process files and their versioning left unchanged when implementing feature work (explicitly: "don't change the flowable bpmn versioning, keep it as it is"). Confidence: 0.7
 - When given a workflow diagram/spec for migration, treat it as the authoritative source and implement the flow to match it exactly (e.g. BPMN that faithfully mirrors the provided diagram). Confidence: 0.9
 - Prefers Java 25 for backend services. Confidence: 0.85
 - Prefers MySQL over PostgreSQL with schema.sql-managed schema for persistence. Confidence: 0.85
-- Prefers simple creator/approver role split (user creates, manager approves/rejects) with role-based approvals and notifications surfaced in both frontend and backend. Confidence: 0.85
+- Prefers simple creator/approver role split (user creates, manager approves/rejects) with role-based approvals and notifications surfaced in both frontend and backend. Confidence: 0.9
+- Wants role-specific approval behavior within the existing layout: employees see their pending requests under "All Requests", managers and finance see their own pending requests with Approve and Reject options directly in "All Requests". Confidence: 0.7
+- Specifies approval workflows as explicit step-by-step chains with exact notification recipients and wording at each step (e.g. creator notified on manager approval, finance and manager notified on final outcome, "Request {number} approved/cancelled"), and expects the implementation to match that chain exactly. Confidence: 0.8
+- Treats a rejection at the final approval step as cancelling the request (status Cancelled), distinct from a plain rejected state. Confidence: 0.5
+- Expects basic controls such as logout to actually work end to end, not just be present in the UI. Confidence: 0.5
+- Specifies header controls by exact placement (e.g., notification icon at the top right just before the user profile icon), copying the placement from the reference app. Confidence: 0.5
 - Prefers complete end-to-end wiring with all frontend screens connected to backend and workflow and all BPMN flows working, rather than partial or stubbed integration. Confidence: 0.9
 - Works against locally-installed services in their own environment rather than Docker (no Docker available); expects fixes/setup to target the local install. Confidence: 0.75
 - Wants framework-managed tables (e.g. Flowable ACT_* tables, Hibernate/JPA tables) auto-generated on app startup via configuration instead of manual SQL/init scripts. Confidence: 0.75
 - Prefers moving promptly from planning to implementation; don't linger in plan mode — once a plan is formed, start making the changes. Confidence: 0.6
 - Prefers tightly-scoped changes: when they report a specific bug/issue, fix that alone rather than expanding into a broader multi-part plan or unrelated cleanup. Confidence: 0.8
  to fix only the named thing "for now" and not create/work on additional things). Confidence: 0.9
-- Expects every view (per-role dashboards, task/approval lists, activity logs) to stay in sync automatically and show real, current data — no stale values, hardcoded placeholders, or manual reloads needed. Confidence: 0.75
+- Expects every view (per-role dashboards, task/approval lists, activity logs) to stay in sync automatically and show real, current data — no stale values, hardcoded placeholders, or manual reloads needed. Confidence: 0.85
+- Wants live updates pushed from the server via Server-Sent Events (SSE) so open pages (e.g. CCR details and activity log) refresh automatically as soon as a change occurs, not on manual refresh. Confidence: 0.6
+- Activity logs must be built only from actual recorded data; placeholder or static tab content is unacceptable and tabs that look like logs must fetch real records. Confidence: 0.7
 - Requires pnpm as the package manager (explicitly: "you have to use pnpm"). Confidence: 0.9
 - Expects refactors/renames to be applied exhaustively across the whole codebase ("every section") — directories, files, identifiers, imports, configs, and docs — with no stale references left behind. Confidence: 0.65
 - Prefers organizing projects as a Turborepo monorepo (apps/*, packages/* layout) for easier project management. Confidence: 0.7
@@ -20,3 +30,9 @@
 - Prefers systematic end-to-end browser audit of every built screen field-by-field to catch and fix gaps (including validation gates, filters, and negative paths) before moving on. Confidence: 0.8
 - When generating dummy/seed data, use existing hard-coded data as the reference template and make it large-volume and diverse covering a wide range of scenarios (all statuses, types, priorities, workflow stages) rather than minimal happy-path rows. Confidence: 0.85
 - Expects generated seed data to actually be inserted/persisted into the database, not just delivered as scripts or fixtures. Confidence: 0.8
+- Reports runtime problems by pasting raw dev-server and backend logs and expects the root cause to be diagnosed from them (e.g. request storms, repeated endpoint hits), not guessed. Confidence: 0.6
+- Considers redundant frontend API calls and duplicate backend event fan-out a defect; expects one load per real change, not one per event or recipient. Confidence: 0.6
+- Expects every navigation item to open a working route; a nav label that goes nowhere is treated as a bug. Confidence: 0.5
+- Sees bulk seeded demo rows at startup as clutter to remove when they show up in the app, not something to keep behind a flag. Confidence: 0.4
+- Expects a reported symptom to be verified in the running app (pages, bell, role-specific lists) rather than declared fixed after a compile/typecheck. Confidence: 0.6
+ts) rather than declared fixed after a compile/typecheck. Confidence: 0.6

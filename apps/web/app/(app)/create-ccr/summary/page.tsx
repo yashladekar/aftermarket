@@ -39,7 +39,9 @@ function SummaryForm() {
   const docsParam = params.get("docs") ?? ""
   const tagsParam = params.get("tags") ?? ""
   const stakeholdersParam = params.get("stakeholders") ?? ""
-  const vendorCodes = vendorsParam ? vendorsParam.split(",").filter(Boolean) : []
+  const vendorCodes = vendorsParam
+    ? vendorsParam.split(",").filter(Boolean)
+    : []
   const partNumbers = partsParam ? partsParam.split(",").filter(Boolean) : []
 
   const { createCcr, submitCcr } = useCcrApi()
@@ -129,8 +131,12 @@ function SummaryForm() {
           .split("|")
           .filter(Boolean)
           .map((entry) => {
-            const [contactType = "External", name = "", email = "", codes = ""] =
-              entry.split(":")
+            const [
+              contactType = "External",
+              name = "",
+              email = "",
+              codes = "",
+            ] = entry.split(":")
             return {
               contactType,
               name,
@@ -239,8 +245,8 @@ function SummaryForm() {
         >
           <p className="mx-auto mt-4 max-w-2xl border-l-2 border-emerald-800 bg-sky-50 px-3 py-2 text-[12px] leading-snug text-neutral-700">
             <span className="font-bold">Please Note :</span> All requested
-            changes submitted via this portal are provisional and subject to
-            JLR validation and approval. Except for changes approved by JLR,
+            changes submitted via this portal are provisional and subject to JLR
+            validation and approval. Except for changes approved by JLR,
             suppliers remain responsible to supply in accordance with existing
             contracts and commercial terms and standard performance metrics
             continue to apply.
@@ -250,21 +256,27 @@ function SummaryForm() {
             <table className="w-full min-w-[800px] text-[12px]">
               <thead>
                 <tr className="bg-neutral-50">
-                  {["Vendor", "Parts", "Quote Documents", "Supporting Documents"].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="px-3 py-1.5 text-center font-semibold text-neutral-700"
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
+                  {[
+                    "Vendor",
+                    "Parts",
+                    "Quote Documents",
+                    "Supporting Documents",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-3 py-1.5 text-center font-semibold text-neutral-700"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {vendors.map((v) => (
-                  <tr key={v.code} className="border-t border-neutral-200 align-top">
+                  <tr
+                    key={v.code}
+                    className="border-t border-neutral-200 align-top"
+                  >
                     <td className="px-3 py-2 text-center font-bold text-emerald-800">
                       {v.code} - {v.name}
                     </td>
@@ -312,7 +324,7 @@ function SummaryForm() {
               control={form.control}
               render={({ field }) => (
                 <Select
-                  value={field.value && field.value !== "" ? field.value : undefined}
+                  value={field.value || null}
                   onValueChange={(v) => field.onChange(v ?? "")}
                 >
                   <SelectTrigger
@@ -375,7 +387,8 @@ function SummaryForm() {
                 disabled={submitting}
                 className="h-7 rounded-sm bg-emerald-800 px-2.5 text-[11px] font-bold text-white hover:bg-emerald-700"
               >
-                <Send className="size-3" /> {submitting ? "SUBMITTING…" : "SUBMIT"}
+                <Send className="size-3" />{" "}
+                {submitting ? "SUBMITTING…" : "SUBMIT"}
               </Button>
             </div>
           </div>

@@ -1,9 +1,7 @@
 package com.aftermarket.backend.api;
 
-import com.aftermarket.backend.domain.Notification;
 import com.aftermarket.backend.service.IdentityService;
 import com.aftermarket.backend.service.NotificationService;
-import java.util.List;
 import java.util.Map;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,8 +25,7 @@ public class NotificationController {
     @GetMapping
     public Map<String, Object> list(Authentication authentication) {
         IdentityService.SessionUser user = identity.sessionFor(authentication.getName());
-        List<Notification> items = notifications.listForUser(user.id());
-        return Map.of("items", items, "unread", notifications.unreadCount(user.id()));
+        return Map.of("items", notifications.page(user.id(), 0, 50), "unread", notifications.unreadCount(user.id()));
     }
 
     @GetMapping("/unread-count")

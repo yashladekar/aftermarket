@@ -2,10 +2,13 @@ package com.aftermarket.backend.api;
 
 import com.aftermarket.backend.domain.Ccr;
 import com.aftermarket.backend.service.ActivityService;
+import com.aftermarket.backend.service.ApprovalViewService;
 import com.aftermarket.backend.service.CcrCatalogService;
 import com.aftermarket.backend.service.CcrService;
+import com.aftermarket.backend.service.IdentityService;
 import com.aftermarket.backend.workflow.WorkflowFacade;
 import com.aftermarket.backend.workflow.dto.HistoryEntry;
+import com.aftermarket.backend.workflow.dto.PendingApprovalView;
 import com.aftermarket.backend.workflow.dto.ProcessInstanceResponse;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -14,6 +17,9 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,22 +38,48 @@ public class CcrController {
     private final CcrCatalogService catalog;
     private final WorkflowFacade workflow;
     private final ActivityService activity;
+    private final ApprovalViewService approvals;
+    private final IdentityService identity;
 
     public CcrController(
-            CcrService ccrs, CcrCatalogService catalog, WorkflowFacade workflow, ActivityService activity) {
+            CcrService ccrs,
+            CcrCatalogService catalog,
+            WorkflowFacade workflow,
+            ActivityService activity,
+            ApprovalViewService approvals,
+            IdentityService identity) {
         this.ccrs = ccrs;
         this.catalog = catalog;
         this.workflow = workflow;
         this.activity = activity;
+        this.approvals = approvals;
+        this.identity = identity;
     }
 
     @GetMapping
     public List<Map<String, Object>> list(
             @RequestParam Map<String, String> filters, Authentication authentication) {
+        IdentityService.SessionUser user = identity.sessionFor(authentication.getName());
+        Set<String> pendingRefs = approvalRefs(user);
         return ccrs.list().stream()
+                .filter(ccr -> visibleTo(ccr, user, pendingRefs))
                 .filter(ccr -> matches(ccr, filters))
                 .map(this::toRow)
                 .toList();
+    }
+
+    private boolean visibleTo(Ccr ccr, IdentityService.SessionUser user, Set<String> pendingRefs) {
+        if (user.permissions().contains("ccr:read:all")) {
+            return true;
+        }
+        return user.id().equals(ccr.getCreatedBy()) || pendingRefs.contains(ccr.getReference());
+    }
+
+    private Set<String> approvalRefs(IdentityService.SessionUser user) {
+        return approvals.pending(user).stream()
+                .map(PendingApprovalView::requestId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     @PostMapping

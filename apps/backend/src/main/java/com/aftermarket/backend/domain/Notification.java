@@ -29,6 +29,9 @@ public class Notification extends BaseEntity {
     @Column(name = "ref_id")
     private String refId;
 
+    @Column(name = "dedupe_key", unique = true)
+    private String dedupeKey;
+
     public String getUserId() {
         return userId;
     }
@@ -83,5 +86,13 @@ public class Notification extends BaseEntity {
 
     public void setRefId(String refId) {
         this.refId = refId;
+    }
+
+    public String getDedupeKey() {
+        return dedupeKey;
+    }
+
+    public void setDedupeKey(String dedupeKey) {
+        this.dedupeKey = dedupeKey;
     }
 }

@@ -49,6 +49,8 @@ public class AftermarketDomainEvents {
     public void finalizeCcr(DelegateExecution execution) {
         String businessKey = requireRequestId(execution);
         boolean approved = Boolean.TRUE.equals(execution.getVariable("approved"));
+        String submittedBy = stringVar(execution, "submittedBy");
+        String managerId = stringVar(execution, "managerId");
         ccrs.findByReference(businessKey).ifPresent(ccr -> {
             ccr.setStatus(approved ? "Approved" : "Rejected");
             ccr.setRecentUpdate(approved ? "CCR Approved" : "CCR Rejected");
@@ -57,19 +59,21 @@ public class AftermarketDomainEvents {
             ccrs.save(ccr);
         });
         activity.record(
-                approved ? "WORKFLOW_APPROVED" : "WORKFLOW_REJECTED",
-                approved ? "CCR approved" : "CCR rejected",
+                approved ? "WORKFLOW_APPROVED" : "WORKFLOW_CANCELLED",
+                approved ? "CCR approved" : "CCR cancelled",
                 "Ccr",
                 businessKey,
                 stringVar(execution, "lastCompletedBy"),
                 "{}");
         notifications.notify(
-                approved ? "REQUEST_APPROVED" : "REQUEST_REJECTED",
-                approved ? businessKey + " was approved" : businessKey + " was rejected",
-                approved ? "The CCR was approved." : "The CCR was rejected.",
+                "REQUEST_" + (approved ? "APPROVED" : "CANCELLED"),
+                "Request " + businessKey + (approved ? " approved" : " cancelled"),
+                approved
+                        ? "Request " + businessKey + " was approved by finance."
+                        : "Request " + businessKey + " was rejected by finance and has been cancelled.",
                 "Ccr",
                 businessKey,
-                List.of(notBlank(stringVar(execution, "submittedBy"), "")),
+                recipients(submittedBy, managerId),
                 List.of());
     }
 
@@ -110,19 +114,36 @@ public class AftermarketDomainEvents {
                     reference,
                     List.of(),
                     List.of("supervisors", "finance"));
-            case "CCR_FINANCE_APPROVAL_REQUESTED" -> notifications.notify(
-                    "FINANCE_APPROVAL_REQUESTED",
-                    "Finance review needed: " + reference,
-                    "CCR " + reference + " passed manager approval and needs finance review.",
-                    "Ccr",
-                    reference,
-                    List.of(),
-                    List.of("finance"));
+            case "CCR_FINANCE_APPROVAL_REQUESTED" -> {
+                notifications.notify(
+                        "APPROVED_BY_MANAGER",
+                        "Request " + reference + " approved by manager",
+                        "Request " + reference + " was approved by the manager and is now with finance.",
+                        "Ccr",
+                        reference,
+                        recipients(ccr.getCreatedBy(), null),
+                        List.of());
+                notifications.notify(
+                        "FINANCE_APPROVAL_REQUESTED",
+                        "Finance review needed: " + reference,
+                        "Request " + reference + " passed manager approval and needs finance review.",
+                        "Ccr",
+                        reference,
+                        List.of(),
+                        List.of("finance"));
+            }
             case "CCR_FINAL_OUTCOME" -> {
             }
             default -> {
             }
         }
+    }
+
+    private List<String> recipients(String creatorId, String managerId) {
+        List<String> users = new java.util.ArrayList<>();
+        if (creatorId != null && !creatorId.isBlank()) users.add(creatorId);
+        if (managerId != null && !managerId.isBlank() && !managerId.equals(creatorId)) users.add(managerId);
+        return users;
     }
 
     private String requireRequestId(DelegateExecution execution) {

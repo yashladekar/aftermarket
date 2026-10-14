@@ -11,8 +11,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +30,8 @@ public class CcrService {
     private final ActivityService activity;
     private final AftermarketProperties properties;
     private final ObjectMapper mapper;
+    private final UserEventService events;
+    private final IdentityService identity;
 
     public CcrService(
             CcrRepository ccrs,
@@ -34,13 +39,17 @@ public class CcrService {
             WorkflowFacade workflow,
             ActivityService activity,
             AftermarketProperties properties,
-            ObjectMapper mapper) {
+            ObjectMapper mapper,
+            UserEventService events,
+            IdentityService identity) {
         this.ccrs = ccrs;
         this.catalog = catalog;
         this.workflow = workflow;
         this.activity = activity;
         this.properties = properties;
         this.mapper = mapper;
+        this.events = events;
+        this.identity = identity;
     }
 
     public List<Ccr> list() {
@@ -107,7 +116,19 @@ public class CcrService {
         applyInstance(ccr, instance);
         ccrs.save(ccr);
         activity.record("WORKFLOW_STARTED", "ccrApproval", "Ccr", reference, userId, "{}");
+        publishToStakeholders(reference, userId);
         return ccr;
+    }
+
+    /** Tells the creator, the actor and the approver groups that this request changed. */
+    public void publishToStakeholders(String reference, String actorId) {
+        Set<String> recipients = new LinkedHashSet<>();
+        recipients.add(actorId);
+        ccrs.findByReference(reference).ifPresent(ccr -> recipients.add(ccr.getCreatedBy()));
+        recipients.addAll(identity.userIdsInGroups(List.of("supervisors", "finance")));
+        recipients.stream()
+                .filter(Objects::nonNull)
+                .forEach(id -> events.publishAfterCommit(id, "workflow", reference));
     }
 
     public void applyInstance(Ccr ccr, ProcessInstanceResponse instance) {

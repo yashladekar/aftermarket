@@ -41,6 +41,7 @@ aftermarket:
   manager-reminder-duration: ${MANAGER_REMINDER_DURATION:PT48H}
   manager-escalation-duration: ${MANAGER_ESCALATION_DURATION:PT120H}
   storage-dir: ${STORAGE_DIR:./storage}
+  seed-demo-data: ${SEED_DEMO_DATA:false}
 
 management:
   endpoints:
